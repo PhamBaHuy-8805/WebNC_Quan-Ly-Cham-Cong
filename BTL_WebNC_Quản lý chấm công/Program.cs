@@ -1,8 +1,14 @@
+using Microsoft.EntityFrameworkCore;
+using BTL_WebNC_Quản_lý_chấm_công.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// Bổ sung dòng này để khởi tạo biến app
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
