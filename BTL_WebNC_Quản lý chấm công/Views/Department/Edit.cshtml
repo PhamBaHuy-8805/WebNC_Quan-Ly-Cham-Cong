@@ -1,0 +1,53 @@
+
+@model BTL_WebNC_Quản_lý_chấm_công.Models.Department
+
+@{
+    ViewData["Title"] = "Sửa phòng ban";
+}
+
+<h2 class="mb-4">Cập nhật phòng ban</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Edit"
+              asp-route-id="@Model.DepartmentID"
+              method="post">
+
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="DepartmentID" />
+
+            <div asp-validation-summary="ModelOnly"
+                 class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="DepartmentName" class="form-label">
+                    Tên phòng ban *
+                </label>
+                <input asp-for="DepartmentName" class="form-control" />
+                <span asp-validation-for="DepartmentName"
+                      class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">
+                    Mô tả
+                </label>
+                <textarea asp-for="Description"
+                          class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description"
+                      class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-success">
+                Cập nhật
+            </button>
+            <a asp-action="Index" class="btn btn-secondary">
+                Quay lại
+            </a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

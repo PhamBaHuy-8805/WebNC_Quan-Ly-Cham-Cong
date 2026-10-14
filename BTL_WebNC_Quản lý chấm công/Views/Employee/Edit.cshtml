@@ -1,0 +1,66 @@
+
+@model BTL_WebNC_Quản_lý_chấm_công.Models.Employee
+
+@{
+    ViewData["Title"] = "Cập nhật nhân viên";
+}
+
+<h2 class="mb-4">Cập nhật nhân viên</h2>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-warning">
+        Chỉnh sửa thông tin nhân viên
+    </div>
+
+    <div class="card-body">
+        <form asp-controller="Employee"
+              asp-action="Edit"
+              asp-route-id="@Model.EmployeeID"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <input type="hidden" asp-for="EmployeeID" />
+
+            <partial name="_EmployeeForm" model="Model" />
+
+            <div class="mb-3">
+                <label class="form-label">Trạng thái hiện tại</label>
+
+                @if (Model.Status == "Active")
+                {
+                    <div>
+                        <span class="badge bg-success">
+                            Đang làm việc
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <span class="badge bg-secondary">
+                            Ngừng hoạt động
+                        </span>
+                    </div>
+                }
+            </div>
+
+            <div class="mt-3">
+                <button type="submit"
+                        class="btn btn-success">
+                    Cập nhật
+                </button>
+
+                <a asp-action="Index"
+                   class="btn btn-secondary">
+                    Quay lại
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

@@ -1,0 +1,31 @@
+
+@model BTL_WebNC_Quản_lý_chấm_công.Models.Position
+
+@{
+    ViewData["Title"] = "Ngừng hoạt động chức vụ";
+}
+
+<h2 class="mb-4">Ngừng hoạt động chức vụ</h2>
+
+<div class="alert alert-warning">
+    Bạn có chắc chắn muốn ngừng hoạt động chức vụ
+    <strong>@Model.PositionName</strong>?
+</div>
+
+<p>
+    Chức vụ sẽ được chuyển sang trạng thái Inactive.
+    Dữ liệu vẫn được giữ trong SQL Server.
+</p>
+
+<form asp-action="Delete"
+      asp-route-id="@Model.PositionID"
+      method="post">
+
+    @Html.AntiForgeryToken()
+
+    <button type="submit" class="btn btn-danger">
+        Xác nhận ngừng hoạt động
+    </button>
+
+    <a asp-action="Index" class="btn btn-secondary">Hủy</a>
+</form>

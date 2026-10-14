@@ -11,6 +11,13 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Bổ sung dòng này để khởi tạo biến app
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider
+        .GetRequiredService<ApplicationDbContext>();
+
+    SeedData.Initialize(context);
+}
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

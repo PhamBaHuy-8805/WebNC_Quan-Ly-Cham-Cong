@@ -1,0 +1,81 @@
+
+@model IEnumerable<BTL_WebNC_Quản_lý_chấm_công.Models.Position>
+
+@{
+    ViewData["Title"] = "Quản lý chức vụ";
+    int stt = 1;
+}
+
+<h2 class="mb-4">Quản lý chức vụ</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<a asp-action="Create" class="btn btn-primary mb-3">
+    + Thêm chức vụ
+</a>
+
+<table class="table table-bordered table-striped table-hover">
+    <thead class="table-dark">
+        <tr>
+            <th>STT</th>
+            <th>Tên chức vụ</th>
+            <th>Mô tả</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@stt</td>
+                <td>@item.PositionName</td>
+                <td>@item.Description</td>
+                <td>
+                    @if (item.Status == "Active")
+                    {
+                        <span class="badge bg-success">Hoạt động</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Ngừng hoạt động</span>
+                    }
+                </td>
+                <td>
+                    <a asp-action="Details"
+                       asp-route-id="@item.PositionID"
+                       class="btn btn-info btn-sm">Chi tiết</a>
+
+                    <a asp-action="Edit"
+                       asp-route-id="@item.PositionID"
+                       class="btn btn-warning btn-sm">Sửa</a>
+
+                    @if (item.Status == "Active")
+                    {
+                        <a asp-action="Delete"
+                           asp-route-id="@item.PositionID"
+                           class="btn btn-danger btn-sm">Ngừng hoạt động</a>
+                    }
+                </td>
+            </tr>
+            stt++;
+        }
+
+        @if (!Model.Any())
+        {
+            <tr>
+                <td colspan="5" class="text-center">
+                    Chưa có chức vụ nào.
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

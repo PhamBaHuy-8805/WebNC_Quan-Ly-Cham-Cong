@@ -1,0 +1,96 @@
+
+@model BTL_WebNC_Quản_lý_chấm_công.Models.Employee
+
+@{
+    ViewData["Title"] = "Chi tiết nhân viên";
+}
+
+<h2 class="mb-4">Chi tiết nhân viên</h2>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-info text-white">
+        Thông tin nhân viên: @Model.FullName
+    </div>
+
+    <div class="card-body">
+        <dl class="row">
+            <dt class="col-sm-4">Mã nhân viên</dt>
+            <dd class="col-sm-8">@Model.EmployeeCode</dd>
+
+            <dt class="col-sm-4">Họ và tên</dt>
+            <dd class="col-sm-8">@Model.FullName</dd>
+
+            <dt class="col-sm-4">Ngày sinh</dt>
+            <dd class="col-sm-8">
+                @(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")
+            </dd>
+
+            <dt class="col-sm-4">Giới tính</dt>
+            <dd class="col-sm-8">
+                @(Model.Gender ?? "Chưa cập nhật")
+            </dd>
+
+            <dt class="col-sm-4">Số điện thoại</dt>
+            <dd class="col-sm-8">
+                @(Model.Phone ?? "Chưa cập nhật")
+            </dd>
+
+            <dt class="col-sm-4">Email</dt>
+            <dd class="col-sm-8">
+                @(Model.Email ?? "Chưa cập nhật")
+            </dd>
+
+            <dt class="col-sm-4">Địa chỉ</dt>
+            <dd class="col-sm-8">
+                @(Model.Address ?? "Chưa cập nhật")
+            </dd>
+
+            <dt class="col-sm-4">Phòng ban</dt>
+            <dd class="col-sm-8">
+                @(Model.Department?.DepartmentName ?? "Chưa phân phòng")
+            </dd>
+
+            <dt class="col-sm-4">Chức vụ</dt>
+            <dd class="col-sm-8">
+                @(Model.Position?.PositionName ?? "Chưa có chức vụ")
+            </dd>
+
+            <dt class="col-sm-4">Ngày vào làm</dt>
+            <dd class="col-sm-8">
+                @Model.HireDate.ToString("dd/MM/yyyy")
+            </dd>
+
+            <dt class="col-sm-4">Lương cơ bản</dt>
+            <dd class="col-sm-8">
+                @Model.Salary.ToString("N0") VNĐ
+            </dd>
+
+            <dt class="col-sm-4">Trạng thái</dt>
+            <dd class="col-sm-8">
+                @if (Model.Status == "Active")
+                {
+                    <span class="badge bg-success">
+                        Đang làm việc
+                    </span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">
+                        Ngừng hoạt động
+                    </span>
+                }
+            </dd>
+        </dl>
+
+        <a asp-action="Edit"
+           asp-route-id="@Model.EmployeeID"
+           class="btn btn-warning">
+            Chỉnh sửa
+        </a>
+
+        <a asp-action="Index"
+           class="btn btn-secondary">
+            Quay lại
+        </a>
+    </div>
+</div>

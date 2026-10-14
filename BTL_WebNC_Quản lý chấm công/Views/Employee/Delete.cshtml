@@ -1,0 +1,65 @@
+
+@model BTL_WebNC_Quản_lý_chấm_công.Models.Employee
+
+@{
+    ViewData["Title"] = "Ngừng hoạt động nhân viên";
+}
+
+<h2 class="mb-4">Ngừng hoạt động nhân viên</h2>
+
+<div class="card border-danger shadow-sm">
+    <div class="card-header bg-danger text-white">
+        Xác nhận ngừng hoạt động
+    </div>
+
+    <div class="card-body">
+        <div class="alert alert-warning">
+            Bạn có chắc chắn muốn ngừng hoạt động
+            nhân viên này không?
+        </div>
+
+        <dl class="row">
+            <dt class="col-sm-4">Mã nhân viên</dt>
+            <dd class="col-sm-8">@Model.EmployeeCode</dd>
+
+            <dt class="col-sm-4">Họ và tên</dt>
+            <dd class="col-sm-8">@Model.FullName</dd>
+
+            <dt class="col-sm-4">Phòng ban</dt>
+            <dd class="col-sm-8">
+                @(Model.Department?.DepartmentName ?? "Chưa phân phòng")
+            </dd>
+
+            <dt class="col-sm-4">Chức vụ</dt>
+            <dd class="col-sm-8">
+                @(Model.Position?.PositionName ?? "Chưa có chức vụ")
+            </dd>
+        </dl>
+
+        <p class="text-muted">
+            Lưu ý: Nhân viên sẽ được chuyển sang
+            trạng thái ngừng hoạt động.
+            Dữ liệu lịch sử chấm công và tính lương
+            vẫn được giữ lại.
+        </p>
+
+        <form asp-controller="Employee"
+              asp-action="Delete"
+              asp-route-id="@Model.EmployeeID"
+              method="post">
+
+            @Html.AntiForgeryToken()
+
+            <button type="submit"
+                    class="btn btn-danger">
+                Xác nhận ngừng hoạt động
+            </button>
+
+            <a asp-action="Index"
+               class="btn btn-secondary">
+                Hủy
+            </a>
+        </form>
+    </div>
+</div>
+
