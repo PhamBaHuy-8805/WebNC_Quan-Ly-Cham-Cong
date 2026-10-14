@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -19,6 +19,9 @@
                 </button>
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Attendance" asp-action="Index">Chấm công</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Leave" asp-action="Index">Nghỉ phép</a></li>
+                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Overtime" asp-action="Index">Tăng ca</a></li>
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
@@ -26,12 +29,31 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <span class="me-3">@User.Identity.Name</span>
+                        <form asp-controller="Account" asp-action="Logout" method="post">
+                            <button type="submit" class="btn btn-outline-secondary">Đăng xuất</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Đăng nhập</a>
+                    }
                 </div>
             </div>
         </nav>
     </header>
     <div class="container">
         <main role="main" class="pb-3">
+            @if (TempData["Error"] is string error)
+            {
+                <div class="alert alert-danger" role="alert">@error</div>
+            }
+            @if (TempData["Success"] is string message)
+            {
+                <div class="alert alert-success" role="status">@message</div>
+            }
             @RenderBody()
         </main>
     </div>

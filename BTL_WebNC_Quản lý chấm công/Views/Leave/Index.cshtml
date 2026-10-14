@@ -1,0 +1,50 @@
+@model RequestListViewModel<Leave>
+@{ ViewData["Title"] = "Đơn nghỉ phép"; }
+<h1>@ViewData["Title"]</h1>
+@if (User.IsInRole("Employee"))
+{
+    <p><a asp-action="Create" class="btn btn-primary">Tạo yêu cầu</a></p>
+}
+<form asp-action="Index" method="get" class="row g-2 mb-3">
+    <div class="col-md-5"><label asp-for="Search" class="form-label">Mã, tên nhân viên hoặc lý do</label><input asp-for="Search" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="Status" class="form-label">Trạng thái</label>
+        <select asp-for="Status" class="form-select"><option value="">Tất cả</option><option value="Pending">Chờ duyệt</option><option value="Approved">Đã duyệt</option><option value="Rejected">Từ chối</option></select>
+    </div>
+    <div class="col-md-3"><label asp-for="Sort" class="form-label">Sắp xếp</label>
+        <select asp-for="Sort" class="form-select"><option value="date_desc">Ngày mới trước</option><option value="date">Ngày cũ trước</option><option value="name">Tên nhân viên</option><option value="status">Trạng thái</option></select>
+    </div>
+    <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Lọc</button></div>
+</form>
+<p>@Model.TotalCount yêu cầu · Trang @Model.Page / @Model.TotalPages</p>
+<div class="table-responsive"><table class="table table-striped align-middle">
+<thead><tr><th>Nhân viên</th><th>Thời gian nghỉ</th><th>Trạng thái</th><th>Người xử lý</th><th>Thao tác</th></tr></thead>
+<tbody>
+@if (Model.Items.Count == 0) { <tr><td colspan="5" class="text-center">Không có yêu cầu phù hợp.</td></tr> }
+@foreach (var item in Model.Items)
+{
+    <tr>
+        <td>@item.Employee?.EmployeeCode<br />@item.Employee?.FullName</td>
+        <td>@item.StartDate.ToString("dd/MM/yyyy") – @item.EndDate.ToString("dd/MM/yyyy")</td>
+        
+        <td><partial name="_RequestStatus" model="item.Status" /></td>
+        <td>@(item.Approver?.FullName ?? "Chưa xử lý")</td>
+        <td><a asp-action="Details" asp-route-id="@item.LeaveID">Chi tiết</a>
+        @if (User.IsInRole("Employee") && item.Status == "Pending")
+        {
+            <span> · </span><a asp-action="Edit" asp-route-id="@item.LeaveID">Sửa</a>
+            <span> · </span><a asp-action="Delete" asp-route-id="@item.LeaveID">Xóa</a>
+        }
+        </td>
+    </tr>
+}
+</tbody></table></div>
+<nav aria-label="Phân trang">
+@if (Model.Page > 1)
+{
+    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-sort="@Model.Sort">Trang trước</a>
+}
+@if (Model.Page < Model.TotalPages)
+{
+    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-sort="@Model.Sort">Trang sau</a>
+}
+</nav>

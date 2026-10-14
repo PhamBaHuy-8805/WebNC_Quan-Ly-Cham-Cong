@@ -70,6 +70,11 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AttendanceID"));
 
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime?>("CheckIn")
                         .HasColumnType("datetime2");
 
@@ -83,6 +88,22 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedBy")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -92,11 +113,14 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                         .HasColumnType("decimal(6,2)");
 
                     b.Property<DateTime>("WorkDate")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("date");
 
                     b.HasKey("AttendanceID");
 
-                    b.HasIndex("EmployeeID");
+                    b.HasIndex("ReviewedBy");
+
+                    b.HasIndex("EmployeeID", "WorkDate")
+                        .IsUnique();
 
                     b.ToTable("Attendances");
                 });
@@ -205,9 +229,6 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.Property<int>("EmployeeID")
                         .HasColumnType("int");
 
-                    b.Property<int?>("EmployeeID1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
 
@@ -224,6 +245,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -233,8 +255,6 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.HasIndex("ApprovedBy");
 
                     b.HasIndex("EmployeeID");
-
-                    b.HasIndex("EmployeeID1");
 
                     b.ToTable("Leaves");
                 });
@@ -248,9 +268,6 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OvertimeID"));
 
                     b.Property<int?>("ApprovedBy")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ApproverEmployeeID")
                         .HasColumnType("int");
 
                     b.Property<int>("EmployeeID")
@@ -267,6 +284,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                         .HasColumnType("time");
 
                     b.Property<string>("Status")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -279,7 +297,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
 
                     b.HasKey("OvertimeID");
 
-                    b.HasIndex("ApproverEmployeeID");
+                    b.HasIndex("ApprovedBy");
 
                     b.HasIndex("EmployeeID");
 
@@ -407,10 +425,17 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Employee")
                         .WithMany("Attendances")
                         .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Employee");
+
+                    b.Navigation("Reviewer");
                 });
 
             modelBuilder.Entity("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", b =>
@@ -436,14 +461,10 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Employee")
-                        .WithMany()
+                        .WithMany("Leaves")
                         .HasForeignKey("EmployeeID")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", null)
-                        .WithMany("Leaves")
-                        .HasForeignKey("EmployeeID1");
 
                     b.Navigation("Approver");
 
@@ -454,7 +475,8 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                 {
                     b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Approver")
                         .WithMany()
-                        .HasForeignKey("ApproverEmployeeID");
+                        .HasForeignKey("ApprovedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Employee")
                         .WithMany("Overtimes")

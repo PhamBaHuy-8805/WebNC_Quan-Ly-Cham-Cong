@@ -12,6 +12,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Models
         public string Username { get; set; } = string.Empty;
 
         [Required, StringLength(255)]
+        // Giữ tên cột cũ; bản thực hành hiện lưu mật khẩu thường theo yêu cầu.
         public string PasswordHash { get; set; } = string.Empty;
 
         public int RoleID { get; set; }

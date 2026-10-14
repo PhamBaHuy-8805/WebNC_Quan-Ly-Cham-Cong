@@ -1,0 +1,2 @@
+@model string
+@(Model switch { "Present" => "Đúng giờ", "Late" => "Đi muộn", "EarlyLeave" => "Về sớm", "LateEarly" => "Đi muộn, về sớm", "Absent" => "Vắng", _ => Model })

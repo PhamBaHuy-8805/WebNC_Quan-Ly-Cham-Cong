@@ -1,0 +1,11 @@
+@model Leave
+<dl class="row">
+    <dt class="col-sm-3">Mã đơn</dt><dd class="col-sm-9">@Model.LeaveID</dd>
+    <dt class="col-sm-3">Nhân viên</dt><dd class="col-sm-9">@Model.Employee?.EmployeeCode — @Model.Employee?.FullName</dd>
+    <dt class="col-sm-3">Loại nghỉ</dt><dd class="col-sm-9">@(Model.LeaveType switch { "Annual" => "Nghỉ phép năm", "Sick" => "Nghỉ ốm", "Unpaid" => "Nghỉ không lương", _ => Model.LeaveType })</dd>
+    <dt class="col-sm-3">Từ ngày</dt><dd class="col-sm-9">@Model.StartDate.ToString("dd/MM/yyyy")</dd>
+    <dt class="col-sm-3">Đến ngày</dt><dd class="col-sm-9">@Model.EndDate.ToString("dd/MM/yyyy")</dd>
+    <dt class="col-sm-3">Lý do</dt><dd class="col-sm-9 text-break">@Model.Reason</dd>
+    <dt class="col-sm-3">Trạng thái</dt><dd class="col-sm-9"><partial name="_RequestStatus" model="Model.Status" /></dd>
+    <dt class="col-sm-3">Người xử lý</dt><dd class="col-sm-9">@(Model.Approver?.FullName ?? "Chưa xử lý")</dd>
+</dl>

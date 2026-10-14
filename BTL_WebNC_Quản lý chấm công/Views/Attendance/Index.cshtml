@@ -1,0 +1,69 @@
+@model AttendanceIndexViewModel
+@{ ViewData["Title"] = Model.IsReviewer ? "Xác nhận chấm công" : "Chấm công của tôi"; }
+<h1>@ViewData["Title"]</h1>
+@if (User.IsInRole("Employee"))
+{
+    <section class="card my-3">
+        <div class="card-body">
+            <h2 class="h5">Hôm nay · @Model.Today.ToString("dd/MM/yyyy")</h2>
+            <p>Giờ Việt Nam · Ca 08:00–17:00 · Nghỉ trưa 12:00–13:00.</p>
+            <p class="text-muted">Check-in khi bắt đầu làm việc. Khi check-out, bản chấm công sẽ được gửi cho HR phê duyệt. Bạn có thể theo dõi kết quả ở danh sách bên dưới.</p>
+            @if (Model.TodayAttendance == null)
+            {
+                <p>Bạn chưa chấm công hôm nay.</p>
+                <form asp-action="CheckIn" method="post"><button class="btn btn-success" type="submit">Check-in · Vào làm</button></form>
+            }
+            else
+            {
+                <p>Giờ vào: <strong>@(Model.TodayAttendance.CheckIn?.ToString("HH:mm:ss") ?? "Chưa có")</strong>
+                    · Giờ ra: <strong>@(Model.TodayAttendance.CheckOut?.ToString("HH:mm:ss") ?? "Chưa có")</strong></p>
+                @if (Model.TodayAttendance.CheckIn != null && Model.TodayAttendance.CheckOut == null && Model.TodayAttendance.ApprovalStatus == "Pending")
+                {
+                    <form asp-action="CheckOut" method="post"><button class="btn btn-primary" type="submit">Check-out · Gửi HR phê duyệt</button></form>
+                }
+                <div class="mt-2"><partial name="_AttendanceApproval" model="Model.TodayAttendance" /></div>
+                <a class="d-inline-block mt-2" asp-action="Details" asp-route-id="@Model.TodayAttendance.AttendanceID">Xem bản chấm công hôm nay</a>
+            }
+        </div>
+    </section>
+}
+else
+{
+    <p>Kiểm tra giờ vào, giờ ra và tổng giờ trước khi xác nhận. Bản chưa check-out chưa thể xử lý.</p>
+}
+<form asp-action="Index" method="get" class="row g-2 mb-3">
+    <div class="col-md-4"><label asp-for="Search" class="form-label">Mã hoặc tên nhân viên</label><input asp-for="Search" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="Date" class="form-label">Ngày làm việc</label><input asp-for="Date" type="date" class="form-control" /></div>
+    <div class="col-md-3"><label asp-for="ApprovalStatus" class="form-label">Xác nhận của HR</label>
+        <select asp-for="ApprovalStatus" class="form-select"><option value="">Tất cả</option><option value="Pending">Chờ xử lý</option><option value="Approved">Đã xác nhận</option><option value="Rejected">Từ chối</option></select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end gap-2"><button class="btn btn-primary" type="submit">Lọc</button><a asp-action="Index" class="btn btn-outline-secondary">Bỏ lọc</a></div>
+</form>
+<p>@Model.TotalCount bản ghi · Trang @Model.Page / @Model.TotalPages</p>
+<div class="table-responsive"><table class="table table-striped align-middle">
+    <thead><tr><th>Ngày</th><th>Nhân viên</th><th>Giờ vào</th><th>Giờ ra</th><th>Tổng giờ</th><th>Chấm công</th><th>HR xác nhận</th><th></th></tr></thead>
+    <tbody>
+    @if (Model.Items.Count == 0) { <tr><td colspan="8" class="text-center">Chưa có bản chấm công phù hợp.</td></tr> }
+    @foreach (var item in Model.Items)
+    {
+        <tr>
+            <td>@item.WorkDate.ToString("dd/MM/yyyy")</td><td>@item.Employee?.EmployeeCode<br />@item.Employee?.FullName</td>
+            <td>@(item.CheckIn?.ToString("HH:mm:ss") ?? "—")</td><td>@(item.CheckOut?.ToString("HH:mm:ss") ?? "Chưa check-out")</td>
+            <td>@(item.CheckOut.HasValue ? item.TotalHours.ToString("0.##") : "—")</td>
+            <td><partial name="_WorkStatus" model="item.Status" /></td>
+            <td><partial name="_AttendanceApproval" model="item" /></td>
+            <td><a asp-action="Details" asp-route-id="@item.AttendanceID">Chi tiết</a></td>
+        </tr>
+    }
+    </tbody>
+</table></div>
+<nav aria-label="Phân trang">
+@if (Model.Page > 1)
+{
+    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-approvalStatus="@Model.ApprovalStatus" asp-route-date="@(Model.Date?.ToString("yyyy-MM-dd"))">Trang trước</a>
+}
+@if (Model.Page < Model.TotalPages)
+{
+    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-approvalStatus="@Model.ApprovalStatus" asp-route-date="@(Model.Date?.ToString("yyyy-MM-dd"))">Trang sau</a>
+}
+</nav>

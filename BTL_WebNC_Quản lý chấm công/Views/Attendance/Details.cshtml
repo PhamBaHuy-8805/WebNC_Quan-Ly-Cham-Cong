@@ -1,0 +1,30 @@
+@model Attendance
+@{ ViewData["Title"] = "Chi tiết chấm công"; }
+<h1>@ViewData["Title"]</h1>
+<dl class="row">
+    <dt class="col-sm-3">Nhân viên</dt><dd class="col-sm-9">@Model.Employee?.EmployeeCode — @Model.Employee?.FullName</dd>
+    <dt class="col-sm-3">Ngày làm việc</dt><dd class="col-sm-9">@Model.WorkDate.ToString("dd/MM/yyyy")</dd>
+    <dt class="col-sm-3">Giờ vào</dt><dd class="col-sm-9">@(Model.CheckIn?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa có")</dd>
+    <dt class="col-sm-3">Giờ ra</dt><dd class="col-sm-9">@(Model.CheckOut?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa check-out")</dd>
+    <dt class="col-sm-3">Tổng giờ làm</dt><dd class="col-sm-9">@(Model.CheckOut.HasValue ? Model.TotalHours.ToString("0.##") : "Chưa hoàn tất")</dd>
+    <dt class="col-sm-3">Chấm công</dt><dd class="col-sm-9"><partial name="_WorkStatus" model="Model.Status" /></dd>
+    <dt class="col-sm-3">Ghi chú</dt><dd class="col-sm-9 text-break">@(Model.Note ?? "—")</dd>
+    <dt class="col-sm-3">Xác nhận của HR</dt><dd class="col-sm-9"><partial name="_AttendanceApproval" model="Model" /></dd>
+    <dt class="col-sm-3">Người xử lý</dt><dd class="col-sm-9">@(Model.Reviewer?.FullName ?? "Chưa xử lý")</dd>
+    <dt class="col-sm-3">Thời điểm xử lý</dt><dd class="col-sm-9">@(Model.ReviewedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+    <dt class="col-sm-3">Ghi chú của HR</dt><dd class="col-sm-9 text-break">@(Model.ReviewNote ?? "—")</dd>
+</dl>
+@if ((User.IsInRole("HR") || User.IsInRole("Admin")) && Model.EmployeeID != (int?)ViewData["CurrentEmployeeID"]
+    && Model.ApprovalStatus == "Pending" && Model.CheckIn != null && Model.CheckOut > Model.CheckIn)
+{
+    <form asp-action="Approve" asp-route-id="@Model.AttendanceID" method="post" class="mb-3">
+        <input type="hidden" name="RowVersion" value="@Convert.ToBase64String(Model.RowVersion)" />
+        <div class="mb-3">
+            <label for="ReviewNote" class="form-label">Ghi chú xử lý (bắt buộc khi từ chối)</label>
+            <textarea id="ReviewNote" name="ReviewNote" maxlength="500" rows="3" class="form-control"></textarea>
+        </div>
+        <button type="submit" class="btn btn-success">Xác nhận chấm công</button>
+        <button type="submit" class="btn btn-outline-danger" asp-action="Reject" asp-route-id="@Model.AttendanceID">Từ chối</button>
+    </form>
+}
+<a asp-action="Index" class="btn btn-outline-secondary">Về danh sách</a>

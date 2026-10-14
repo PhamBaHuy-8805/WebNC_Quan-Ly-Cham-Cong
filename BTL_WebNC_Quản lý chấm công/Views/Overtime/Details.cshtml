@@ -1,0 +1,22 @@
+@model Overtime
+@{ ViewData["Title"] = "Chi tiết đăng ký tăng ca"; }
+<h1>@ViewData["Title"]</h1>
+<partial name="_Details" model="Model" />
+@if (Model.Status == "Pending")
+{
+    if (User.IsInRole("Employee"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.OvertimeID" class="btn btn-primary">Sửa đơn</a>
+        <a asp-action="Delete" asp-route-id="@Model.OvertimeID" class="btn btn-outline-danger">Xóa đơn</a>
+    }
+    if ((User.IsInRole("HR") || User.IsInRole("Admin")) && Model.EmployeeID != (int?)ViewData["CurrentEmployeeID"])
+    {
+        <form asp-action="Approve" asp-route-id="@Model.OvertimeID" method="post" class="d-inline">
+            <button class="btn btn-success" type="submit">Phê duyệt</button>
+        </form>
+        <form asp-action="Reject" asp-route-id="@Model.OvertimeID" method="post" class="d-inline">
+            <button class="btn btn-danger" type="submit">Từ chối</button>
+        </form>
+    }
+}
+<a asp-action="Index" class="btn btn-outline-secondary">Về danh sách</a>

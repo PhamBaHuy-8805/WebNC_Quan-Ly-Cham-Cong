@@ -1,0 +1,11 @@
+@model OvertimeCreateViewModel
+@{ ViewData["Title"] = "Tạo đăng ký tăng ca"; }
+<h1>@ViewData["Title"]</h1>
+<div class="row"><div class="col-lg-6">
+<form asp-action="Create"  method="post">
+    <partial name="_Form" model="Model" />
+    <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+    <a asp-action="Index" class="btn btn-outline-secondary">Hủy</a>
+</form>
+</div></div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

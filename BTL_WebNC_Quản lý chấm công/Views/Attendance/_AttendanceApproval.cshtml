@@ -1,0 +1,6 @@
+@model Attendance
+@{
+    var label = Model.ApprovalStatus switch { "Approved" => "Đã xác nhận", "Rejected" => "Từ chối", _ => Model.CheckOut == null ? "Chưa đủ giờ vào/ra" : "Chờ HR xác nhận" };
+    var color = Model.ApprovalStatus switch { "Approved" => "success", "Rejected" => "danger", _ => "secondary" };
+}
+<span class="badge bg-@color">@label</span>

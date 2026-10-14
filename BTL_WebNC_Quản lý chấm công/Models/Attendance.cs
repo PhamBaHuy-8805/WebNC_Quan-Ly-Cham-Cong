@@ -10,6 +10,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Models
 
         public int EmployeeID { get; set; }
 
+        [Column(TypeName = "date")]
         public DateTime WorkDate { get; set; }
 
         public DateTime? CheckIn { get; set; }
@@ -26,5 +27,20 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Models
         public string? Note { get; set; }
 
         public Employee? Employee { get; set; }
+
+        [Required, StringLength(20)]
+        public string ApprovalStatus { get; set; } = "Pending";
+
+        public int? ReviewedBy { get; set; }
+
+        public Employee? Reviewer { get; set; }
+
+        public DateTime? ReviewedAt { get; set; }
+
+        [StringLength(500)]
+        public string? ReviewNote { get; set; }
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     }
 }

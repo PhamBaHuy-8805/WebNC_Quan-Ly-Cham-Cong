@@ -1,0 +1,11 @@
+@model Overtime
+<dl class="row">
+    <dt class="col-sm-3">Mã đơn</dt><dd class="col-sm-9">@Model.OvertimeID</dd>
+    <dt class="col-sm-3">Nhân viên</dt><dd class="col-sm-9">@Model.Employee?.EmployeeCode — @Model.Employee?.FullName</dd>
+    <dt class="col-sm-3">Ngày tăng ca</dt><dd class="col-sm-9">@Model.WorkDate.ToString("dd/MM/yyyy")</dd>
+    <dt class="col-sm-3">Thời gian</dt><dd class="col-sm-9">@Model.StartTime.ToString(@"hh\:mm") – @Model.EndTime.ToString(@"hh\:mm")</dd>
+    <dt class="col-sm-3">Tổng giờ đăng ký</dt><dd class="col-sm-9">@Model.TotalHours.ToString("0.##") giờ</dd>
+    <dt class="col-sm-3">Lý do</dt><dd class="col-sm-9 text-break">@Model.Reason</dd>
+    <dt class="col-sm-3">Trạng thái</dt><dd class="col-sm-9"><partial name="_RequestStatus" model="Model.Status" /></dd>
+    <dt class="col-sm-3">Người xử lý</dt><dd class="col-sm-9">@(Model.Approver?.FullName ?? "Chưa xử lý")</dd>
+</dl>

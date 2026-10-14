@@ -36,7 +36,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Data
             // Cấu hình quan hệ cho bảng Leave với Employee (Người xin nghỉ)
             modelBuilder.Entity<Leave>()
                 .HasOne(l => l.Employee)
-                .WithMany()
+                .WithMany(e => e.Leaves)
                 .HasForeignKey(l => l.EmployeeID)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -46,11 +46,30 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Data
                 .WithMany()
                 .HasForeignKey(l => l.ApprovedBy)
                 .OnDelete(DeleteBehavior.Restrict);
-                modelBuilder.Entity<Overtime>()
-        .HasOne(o => o.Employee) // Giả định trong Overtime.cs có thuộc tính Employee và EmployeeID
-        .WithMany(e => e.Overtimes)
-        .HasForeignKey(o => o.EmployeeID)
-        .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Overtime>()
+                .HasOne(o => o.Employee)
+                .WithMany(e => e.Overtimes)
+                .HasForeignKey(o => o.EmployeeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Overtime>()
+                .HasOne(o => o.Approver)
+                .WithMany()
+                .HasForeignKey(o => o.ApprovedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Không cho hai thao tác đồng thời ghi đè trạng thái đã được xử lý.
+            modelBuilder.Entity<Leave>().Property(l => l.Status).IsConcurrencyToken();
+            modelBuilder.Entity<Overtime>().Property(o => o.Status).IsConcurrencyToken();
+
+            modelBuilder.Entity<Attendance>()
+                .HasOne(a => a.Employee).WithMany(e => e.Attendances)
+                .HasForeignKey(a => a.EmployeeID).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Attendance>()
+                .HasOne(a => a.Reviewer).WithMany()
+                .HasForeignKey(a => a.ReviewedBy).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Attendance>()
+                .HasIndex(a => new { a.EmployeeID, a.WorkDate }).IsUnique();
         }
     }
 }
