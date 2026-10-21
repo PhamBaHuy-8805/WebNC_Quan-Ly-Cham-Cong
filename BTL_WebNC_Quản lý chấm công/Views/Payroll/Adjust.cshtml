@@ -1,0 +1,17 @@
+@model PayrollAdjustViewModel
+@{ ViewData["Title"] = "Điều chỉnh bảng lương"; }
+<h1>@ViewData["Title"]</h1>
+<p>@Model.EmployeeName · Kỳ @Model.Period</p>
+<form asp-action="Adjust" asp-route-id="@Model.PayrollID" method="post" class="col-md-5">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="mb-3"><label asp-for="Allowance" class="form-label"></label>
+        <input asp-for="Allowance" type="number" step="1000" min="0" class="form-control" />
+        <span asp-validation-for="Allowance" class="text-danger"></span></div>
+    <div class="mb-3"><label asp-for="Deduction" class="form-label"></label>
+        <input asp-for="Deduction" type="number" step="1000" min="0" class="form-control" />
+        <span asp-validation-for="Deduction" class="text-danger"></span>
+        <div class="form-text">Mặc định là tiền phạt đi muộn/về sớm đã tự tính; có thể sửa tay nếu cần.</div></div>
+    <button class="btn btn-primary" type="submit">Lưu</button>
+    <a asp-action="Details" asp-route-id="@Model.PayrollID" class="btn btn-secondary">Hủy</a>
+</form>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

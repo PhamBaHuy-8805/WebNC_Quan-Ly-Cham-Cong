@@ -22,6 +22,15 @@
                         <li class="nav-item"><a class="nav-link text-dark" asp-controller="Attendance" asp-action="Index">Chấm công</a></li>
                         <li class="nav-item"><a class="nav-link text-dark" asp-controller="Leave" asp-action="Index">Nghỉ phép</a></li>
                         <li class="nav-item"><a class="nav-link text-dark" asp-controller="Overtime" asp-action="Index">Tăng ca</a></li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Payroll" asp-action="Index">Bảng lương</a></li>
+                        }
+                        @if (User.IsInRole("HR") || User.IsInRole("Admin"))
+                        {
+                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Payroll" asp-action="Summary">Tổng hợp công</a></li>
+                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Report" asp-action="Index">Báo cáo</a></li>
+                        }
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>

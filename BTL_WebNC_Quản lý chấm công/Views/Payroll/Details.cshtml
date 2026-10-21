@@ -1,0 +1,54 @@
+@model PayrollDetailsViewModel
+@using System.Globalization
+@using BTL_WebNC_Quản_lý_chấm_công.Services
+@{
+    var p = Model.Payroll;
+    var vi = new CultureInfo("vi-VN");
+    ViewData["Title"] = $"Phiếu lương {p.Month:00}/{p.Year}";
+    var color = p.Status switch { "Paid" => "success", "Approved" => "primary", _ => "secondary" };
+}
+<h1>@ViewData["Title"] <span class="badge bg-@color fs-6">@ReportService.StatusLabel(p.Status)</span></h1>
+<dl class="row">
+    <dt class="col-sm-3">Nhân viên</dt><dd class="col-sm-9">@p.Employee?.EmployeeCode - @p.Employee?.FullName</dd>
+    <dt class="col-sm-3">Phòng ban / Chức vụ</dt><dd class="col-sm-9">@(p.Employee?.Department?.DepartmentName ?? "Chưa có") / @(p.Employee?.Position?.PositionName ?? "Chưa có")</dd>
+</dl>
+<table class="table table-bordered w-auto">
+    <tr><td>Lương cơ bản</td><td class="text-end">@p.BaseSalary.ToString("N0", vi)</td></tr>
+    <tr><td>Ngày công chuẩn của tháng</td><td class="text-end">@Model.StandardDays</td></tr>
+    <tr><td>Lương một ngày</td><td class="text-end">@Model.DailyRate.ToString("N0", vi)</td></tr>
+    <tr><td>Ngày công thực tế (gồm nghỉ phép có lương)</td><td class="text-end">@p.WorkingDays.ToString("0.##", vi)</td></tr>
+    <tr><td>Tổng giờ làm</td><td class="text-end">@p.WorkingHours.ToString("0.##", vi)</td></tr>
+    <tr><td>Lương theo ngày công</td><td class="text-end">@Model.BasePay.ToString("N0", vi)</td></tr>
+    <tr><td>Giờ tăng ca (hệ số @PayrollRules.OvertimeMultiplier.ToString("0.##", vi))</td><td class="text-end">@p.OvertimeHours.ToString("0.##", vi)</td></tr>
+    <tr><td>Tiền tăng ca</td><td class="text-end">@Model.OvertimePay.ToString("N0", vi)</td></tr>
+    <tr><td>Phụ cấp / thưởng</td><td class="text-end">+ @p.Allowance.ToString("N0", vi)</td></tr>
+    <tr><td>Khấu trừ (đi muộn, về sớm, khác)</td><td class="text-end">- @p.Deduction.ToString("N0", vi)</td></tr>
+    <tr class="table-light fw-bold"><td>Thực nhận (VNĐ)</td><td class="text-end">@p.TotalSalary.ToString("N0", vi)</td></tr>
+</table>
+@if (p.WorkingDays > Model.StandardDays)
+{
+    <p class="text-muted">Ngày công vượt ngày công chuẩn, phần vượt không được tính vào lương ngày công.</p>
+}
+<div class="d-flex flex-wrap gap-2">
+    <a asp-action="Index" asp-route-month="@p.Month" asp-route-year="@p.Year" class="btn btn-secondary">Quay lại</a>
+    @if (Model.CanReview && p.Status == "Draft")
+    {
+        <a asp-action="Adjust" asp-route-id="@p.PayrollID" class="btn btn-outline-warning">Điều chỉnh phụ cấp/khấu trừ</a>
+        @if (Model.CanApprove)
+        {
+            <form asp-action="Approve" asp-route-id="@p.PayrollID" method="post"
+                  onsubmit="return confirm('Xác nhận bảng lương? Sau khi xác nhận sẽ không sửa được.');">
+                <button class="btn btn-primary" type="submit">Xác nhận bảng lương</button>
+            </form>
+        }
+        <form asp-action="DeleteDraft" asp-route-id="@p.PayrollID" method="post" onsubmit="return confirm('Xóa bảng lương nháp này?');">
+            <button class="btn btn-outline-danger" type="submit">Xóa bản nháp</button>
+        </form>
+    }
+    @if (Model.CanReview && p.Status == "Approved")
+    {
+        <form asp-action="MarkPaid" asp-route-id="@p.PayrollID" method="post" onsubmit="return confirm('Đánh dấu đã chi trả lương?');">
+            <button class="btn btn-success" type="submit">Đánh dấu đã chi trả</button>
+        </form>
+    }
+</div>

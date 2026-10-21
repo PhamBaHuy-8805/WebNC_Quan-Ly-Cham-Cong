@@ -1,0 +1,99 @@
+@model PayrollIndexViewModel
+@using System.Globalization
+@using BTL_WebNC_Quản_lý_chấm_công.Services
+@{
+    ViewData["Title"] = Model.IsReviewer ? "Bảng lương" : "Phiếu lương của tôi";
+    var vi = new CultureInfo("vi-VN");
+}
+<h1>@ViewData["Title"]</h1>
+
+@if (Model.IsReviewer)
+{
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a asp-action="Summary" asp-route-month="@Model.Month" asp-route-year="@Model.Year" class="btn btn-outline-primary">Xem tổng hợp công</a>
+        <a asp-action="ExportCsv" asp-route-month="@Model.Month" asp-route-year="@Model.Year" class="btn btn-outline-secondary">Xuất CSV</a>
+        <form asp-action="Generate" method="post" class="d-inline">
+            <input type="hidden" name="month" value="@Model.Month" />
+            <input type="hidden" name="year" value="@Model.Year" />
+            <button type="submit" class="btn btn-primary">Tính lương tháng @Model.Month.ToString("00")/@Model.Year</button>
+        </form>
+        @if (Model.DraftCount > 0)
+        {
+            <form asp-action="Generate" method="post" class="d-inline"
+                  onsubmit="return confirm('Tính lại sẽ ghi đè các bảng lương Nháp (phụ cấp được giữ, khấu trừ tính lại). Tiếp tục?');">
+                <input type="hidden" name="month" value="@Model.Month" />
+                <input type="hidden" name="year" value="@Model.Year" />
+                <input type="hidden" name="recalculate" value="true" />
+                <button type="submit" class="btn btn-outline-warning">Tính lại bảng Nháp</button>
+            </form>
+        }
+    </div>
+
+    <form asp-action="Index" method="get" class="row g-2 mb-3">
+        <div class="col-md-2"><label class="form-label">Tháng</label>
+            <select name="month" class="form-select">
+                @for (var i = 1; i <= 12; i++) { <option value="@i" selected="@(i == Model.Month)">Tháng @i</option> }
+            </select></div>
+        <div class="col-md-2"><label class="form-label">Năm</label>
+            <input type="number" name="year" value="@Model.Year" min="2000" max="2100" class="form-control" /></div>
+        <div class="col-md-3"><label class="form-label">Phòng ban</label>
+            <select name="departmentId" class="form-select">
+                <option value="">Tất cả</option>
+                @foreach (var d in Model.Departments) { <option value="@d.Id" selected="@(Model.DepartmentId == d.Id)">@d.Name</option> }
+            </select></div>
+        <div class="col-md-2"><label class="form-label">Trạng thái</label>
+            <select name="status" class="form-select">
+                <option value="">Tất cả</option>
+                <option value="Draft" selected="@(Model.Status == "Draft")">Nháp</option>
+                <option value="Approved" selected="@(Model.Status == "Approved")">Đã xác nhận</option>
+                <option value="Paid" selected="@(Model.Status == "Paid")">Đã chi trả</option>
+            </select></div>
+        <div class="col-md-3"><label class="form-label">Mã / tên nhân viên</label>
+            <input name="search" value="@Model.Search" class="form-control" /></div>
+        <div class="col-12"><button class="btn btn-primary" type="submit">Lọc</button>
+            <a asp-action="Index" class="btn btn-secondary">Làm mới</a></div>
+    </form>
+}
+
+<p>@Model.TotalCount bảng lương · Tổng thực nhận: <strong>@Model.TotalSalary.ToString("N0", vi) VNĐ</strong> · Trang @Model.Page / @Model.TotalPages</p>
+<div class="table-responsive"><table class="table table-striped align-middle">
+<thead><tr>
+    <th>Kỳ lương</th>
+    @if (Model.IsReviewer) { <th>Nhân viên</th><th>Phòng ban</th> }
+    <th class="text-end">Ngày công</th><th class="text-end">Giờ tăng ca</th><th class="text-end">Thực nhận (VNĐ)</th><th>Trạng thái</th><th></th>
+</tr></thead>
+<tbody>
+@if (Model.Items.Count == 0)
+{
+    <tr><td colspan="@(Model.IsReviewer ? 8 : 6)" class="text-center">
+        @(Model.IsReviewer ? "Chưa có bảng lương cho kỳ này. Bấm \"Tính lương\" để tạo." : "Chưa có phiếu lương nào được xác nhận.")
+    </td></tr>
+}
+@foreach (var p in Model.Items)
+{
+    var color = p.Status switch { "Paid" => "success", "Approved" => "primary", _ => "secondary" };
+    <tr>
+        <td>@p.Month.ToString("00")/@p.Year</td>
+        @if (Model.IsReviewer)
+        {
+            <td>@p.Employee?.EmployeeCode<br />@p.Employee?.FullName</td>
+            <td>@(p.Employee?.Department?.DepartmentName ?? "Chưa có")</td>
+        }
+        <td class="text-end">@p.WorkingDays.ToString("0.##", vi)</td>
+        <td class="text-end">@p.OvertimeHours.ToString("0.##", vi)</td>
+        <td class="text-end">@p.TotalSalary.ToString("N0", vi)</td>
+        <td><span class="badge bg-@color">@ReportService.StatusLabel(p.Status)</span></td>
+        <td><a asp-action="Details" asp-route-id="@p.PayrollID">Chi tiết</a></td>
+    </tr>
+}
+</tbody></table></div>
+<nav aria-label="Phân trang">
+@if (Model.Page > 1)
+{
+    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-month="@Model.Month" asp-route-year="@Model.Year" asp-route-departmentId="@Model.DepartmentId" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Trang trước</a>
+}
+@if (Model.Page < Model.TotalPages)
+{
+    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-month="@Model.Month" asp-route-year="@Model.Year" asp-route-departmentId="@Model.DepartmentId" asp-route-search="@Model.Search" asp-route-status="@Model.Status">Trang sau</a>
+}
+</nav>
