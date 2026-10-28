@@ -1,0 +1,34 @@
+@{
+    ViewData["Title"] = "Quản lý phòng ban - AJAX";
+}
+<div class="container py-4" id="catalogAjax" data-api="@Url.Content("~/ajax/departments")" data-name="Phòng ban" data-id="DepartmentID" data-name-field="DepartmentName">
+    <h2>Quản lý phòng ban - AJAX</h2>
+    @Html.AntiForgeryToken()
+    <div class="card mb-3"><div class="card-body">
+        <div class="row g-2"><div class="col-md-7"><input id="catalogKeyword" class="form-control" placeholder="Nhập tên phòng ban" /></div>
+            <div class="col-md-5 d-flex gap-2"><button id="catalogSearch" class="btn btn-primary" type="button">Tìm kiếm (fetch)</button>
+                <button id="catalogReset" class="btn btn-outline-secondary" type="button">Làm mới (XHR)</button></div></div>
+    </div></div>
+    <div class="card mb-3"><div class="card-body">
+        <h5>Thêm phòng ban (jQuery AJAX)</h5>
+        <form id="catalogCreateForm"><div class="row g-2">
+            <div class="col-md-4"><label class="form-label">Tên phòng ban *</label><input class="form-control" name="DepartmentName" maxlength="100" required /></div>
+            <div class="col-md-5"><label class="form-label">Mô tả</label><input class="form-control" name="Description" maxlength="255" /></div>
+            <div class="col-md-3"><label class="form-label">Trạng thái</label><select class="form-select" name="Status">
+                <option value="Active">Đang hoạt động</option><option value="Inactive">Ngừng hoạt động</option>
+            </select></div></div>
+            <button class="btn btn-success mt-3" type="submit">Thêm phòng ban</button>
+        </form>
+    </div></div>
+    <div id="catalogNotice" role="status" aria-live="polite"></div>
+    <div class="table-responsive"><table class="table table-bordered table-striped">
+        <thead class="table-light"><tr><th>ID</th><th>Tên phòng ban</th><th>Mô tả</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+        <tbody id="catalogRows"><tr><td colspan="5">Đang tải...</td></tr></tbody>
+    </table></div>
+    <div class="d-flex justify-content-between flex-wrap gap-2"><div id="catalogCount"></div><div id="catalogPager" class="d-flex align-items-center gap-2"></div></div>
+    <div class="mt-4"><a href="@Url.Content("~/ajax/employees")">Quản lý nhân viên</a> · <a href="@Url.Content("~/ajax/positions")">Quản lý chức vụ</a></div>
+</div>
+@section Scripts {
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/catalog-ajax.js" asp-append-version="true"></script>
+}
