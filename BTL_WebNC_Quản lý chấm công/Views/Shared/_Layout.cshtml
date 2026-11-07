@@ -1,104 +1,107 @@
-﻿<!DOCTYPE html>
+@using Microsoft.AspNetCore.Html
+@{
+    var pageTitle = ViewData["Title"]?.ToString() ?? "Không gian làm việc";
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var userName = signedIn ? User.Identity!.Name ?? "Nhân viên" : "Khách";
+    var role = User.IsInRole("Admin") ? "Quản trị viên" : User.IsInRole("HR") ? "Nhân sự" : "Nhân viên";
+    var today = DateTimeOffset.UtcNow.ToOffset(TimeSpan.FromHours(7));
+}
+@functions {
+    private static IHtmlContent Icon(string name)
+    {
+        var path = name switch
+        {
+            "home" => "<path d='m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z'/>",
+            "clock" => "<circle cx='12' cy='12' r='9'/><path d='M12 7v5l3 2'/>",
+            "calendar" => "<rect x='3' y='5' width='18' height='16' rx='2'/><path d='M16 3v4M8 3v4M3 11h18m-13 5 2 2 5-5'/>",
+            "overtime" => "<path d='m13 2-9 12h7l-1 8 10-12h-8Z'/>",
+            "wallet" => "<rect x='3' y='5' width='18' height='15' rx='3'/><path d='M3 9h18m-5 4h5v4h-5Z'/>",
+            "summary" => "<rect x='5' y='4' width='14' height='17' rx='2'/><path d='M9 4V2h6v2M9 10h6M9 14h6M9 18h3'/>",
+            "chart" => "<path d='M4 3v17h17M9 16v-5m5 5V7m5 9V4'/>",
+            "users" => "<circle cx='9' cy='7' r='3'/><path d='M3 21v-3a6 6 0 0 1 12 0v3m1-17a3 3 0 0 1 0 6m2 5a5 5 0 0 1 3 4v2'/>",
+            "building" => "<rect x='4' y='3' width='16' height='18' rx='2'/><path d='M9 21v-4h6v4M8 7h2m4 0h2M8 11h2m4 0h2'/>",
+            "briefcase" => "<rect x='3' y='7' width='18' height='14' rx='2'/><path d='M8 7V3h8v4M3 12a20 20 0 0 0 18 0M12 11v4'/>",
+            _ => "<path d='M5 12h14m-6-6 6 6-6 6'/>"
+        };
+        return new HtmlString($"<svg class='ui-icon' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'>{path}</svg>");
+    }
+}
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - BTL_WebNC_Quản_lý_chấm_công</title>
+    <meta name="theme-color" content="#102d32" />
+    <title>@pageTitle · Quản lý chấm công</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/BTL_WebNC_Quản_lý_chấm_công.styles.css" asp-append-version="true" />
+    <noscript><style>.app-sidebar{position:static;transform:none;visibility:visible;width:100%}.app-shell{margin-left:0}.menu-toggle{display:none}</style></noscript>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">BTL_WebNC_Quản_lý_chấm_công</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Attendance" asp-action="Index">Chấm công</a></li>
-                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Leave" asp-action="Index">Nghỉ phép</a></li>
-                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Overtime" asp-action="Index">Tăng ca</a></li>
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Payroll" asp-action="Index">Bảng lương</a></li>
-                        }
-                        
-                        @if (User.IsInRole("HR") || User.IsInRole("Admin"))
-                        {
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                                asp-controller="Payroll"
-                                asp-action="Summary">Tổng hợp công</a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                                asp-controller="Report"
-                                asp-action="Index">Báo cáo</a>
-                        </li>
-
-                        <!-- Quản lý nhân sự -->
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                                href="@Url.Content("~/Employees")">Nhân viên</a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                                href="@Url.Content("~/Departments")">Phòng ban</a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark"
-                                href="@Url.Content("~/Positions")">Chức vụ</a>
-                        </li>
-                        }
-
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                    @if (User.Identity?.IsAuthenticated == true)
-                    {
-                        <span class="me-3">@User.Identity.Name</span>
-                        <form asp-controller="Account" asp-action="Logout" method="post">
-                            <button type="submit" class="btn btn-outline-secondary">Đăng xuất</button>
-                        </form>
-                    }
-                    else
-                    {
-                        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Đăng nhập</a>
-                    }
-                </div>
-            </div>
+    <a class="skip-link" href="#main-content">Đến nội dung chính</a>
+    <aside class="app-sidebar" id="app-sidebar" aria-label="Điều hướng chính">
+        <a class="app-brand" asp-controller="Home" asp-action="Index">
+            <span class="brand-symbol">@Icon("clock")</span>
+            <span>Chấm công<small>KHÔNG GIAN LÀM VIỆC</small></span>
+        </a>
+        <div class="sidebar-workspace"><span class="workspace-dot"></span><div>Quản lý nhân sự<small>Đồng hành mỗi ngày làm việc</small></div></div>
+        <nav class="sidebar-navigation">
+            <p class="nav-caption">KHÔNG GIAN CỦA BẠN</p>
+            <a class="side-link" asp-controller="Home" asp-action="Index">@Icon("home")<span>Tổng quan</span></a>
+            <a class="side-link" asp-controller="Attendance" asp-action="Index">@Icon("clock")<span>Chấm công</span></a>
+            <a class="side-link" asp-controller="Leave" asp-action="Index">@Icon("calendar")<span>Nghỉ phép</span></a>
+            <a class="side-link" asp-controller="Overtime" asp-action="Index">@Icon("overtime")<span>Tăng ca</span></a>
+            @if (signedIn)
+            {
+                <a class="side-link" asp-controller="Payroll" asp-action="Index">@Icon("wallet")<span>Bảng lương</span></a>
+            }
+            @if (User.IsInRole("HR") || User.IsInRole("Admin"))
+            {
+                <p class="nav-caption">QUẢN TRỊ & BÁO CÁO</p>
+                <a class="side-link" asp-controller="Payroll" asp-action="Summary">@Icon("summary")<span>Tổng hợp công</span></a>
+                <a class="side-link" asp-controller="Report" asp-action="Index">@Icon("chart")<span>Báo cáo thống kê</span></a>
+                <a class="side-link" href="@Url.Content("~/Employees")">@Icon("users")<span>Nhân viên</span></a>
+                <a class="side-link" href="@Url.Content("~/Departments")">@Icon("building")<span>Phòng ban</span></a>
+                <a class="side-link" href="@Url.Content("~/Positions")">@Icon("briefcase")<span>Chức vụ</span></a>
+            }
         </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @if (TempData["Error"] is string error)
-            {
-                <div class="alert alert-danger" role="alert">@error</div>
-            }
-            @if (TempData["Success"] is string message)
-            {
-                <div class="alert alert-success" role="status">@message</div>
-            }
-            @RenderBody()
-        </main>
-    </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - BTL_WebNC_Quản_lý_chấm_công - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+        <div class="sidebar-note"><span class="note-line"></span><p>Một ngày làm việc tốt<br />bắt đầu từ sự chủ động.</p><small>CÙNG NHAU TIẾN VỀ PHÍA TRƯỚC</small></div>
+    </aside>
+    <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Đóng menu" tabindex="-1" hidden></button>
+    <div class="app-shell">
+        <header class="app-topbar">
+            <div class="topbar-heading">
+                <button type="button" class="menu-toggle" id="menu-toggle" aria-controls="app-sidebar" aria-expanded="false" aria-label="Mở menu"><span></span><span></span><span></span></button>
+                <span class="breadcrumb-label">Không gian làm việc <span>/</span> <strong>@pageTitle</strong></span>
+            </div>
+            <div class="topbar-actions">
+                <time class="topbar-date" datetime="@today.ToString("yyyy-MM-dd")">@today.ToString("dd.MM.yyyy")</time>
+                @if (signedIn)
+                {
+                    <div class="user-profile"><span class="user-avatar">@userName[..1].ToUpperInvariant()</span><span>@userName<small>@role</small></span></div>
+                    <form asp-controller="Account" asp-action="Logout" method="post"><button type="submit" class="btn btn-sm btn-outline-secondary">Đăng xuất</button></form>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-sm">Đăng nhập @Icon("arrow")</a>
+                }
+            </div>
+        </header>
+        <div class="app-content">
+            <main id="main-content" tabindex="-1">
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">@error<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng thông báo"></button></div>
+                }
+                @if (TempData["Success"] is string message)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="status">@message<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Đóng thông báo"></button></div>
+                }
+                @RenderBody()
+            </main>
         </div>
-    </footer>
+        <footer class="app-footer"><span>© @today.Year · Quản lý chấm công</span><a asp-controller="Home" asp-action="Privacy">Quyền riêng tư</a><span class="footer-status"><span></span>Không gian làm việc của bạn</span></footer>
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

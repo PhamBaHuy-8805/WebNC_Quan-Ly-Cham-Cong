@@ -1,14 +1,22 @@
 @model LoginViewModel
 @{ ViewData["Title"] = "Đăng nhập"; }
-<h1>Đăng nhập</h1>
-<p class="text-muted">Phiên đăng nhập có thời hạn tối đa 2 giờ. Hãy đăng xuất khi kết thúc làm việc.</p>
-<div class="row"><div class="col-md-5">
-<form asp-action="Login" method="post">
-    <input asp-for="ReturnUrl" type="hidden" />
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <div class="mb-3"><label asp-for="Username" class="form-label"></label><input asp-for="Username" class="form-control" autocomplete="username" /><span asp-validation-for="Username" class="text-danger"></span></div>
-    <div class="mb-3"><label asp-for="Password" class="form-label"></label><input asp-for="Password" class="form-control" autocomplete="current-password" /><span asp-validation-for="Password" class="text-danger"></span></div>
-    <button type="submit" class="btn btn-primary">Đăng nhập</button>
-</form>
-</div></div>
+<div class="login-layout">
+    <section class="login-story" aria-labelledby="login-heading">
+        <span class="eyebrow">KHÔNG GIAN LÀM VIỆC CỦA BẠN</span>
+        <h1 id="login-heading">Kết nối công việc.<br />Bắt đầu ngày mới.</h1>
+        <p>Một nơi để theo dõi thời gian, quản lý yêu cầu và cập nhật thông tin làm việc.</p>
+        <ul class="login-benefits"><li>Chấm công nhanh chóng, rõ ràng</li><li>Theo dõi nghỉ phép và tăng ca</li><li>Thông tin công lương trong tầm tay</li></ul>
+    </section>
+    <section class="login-form-panel" aria-labelledby="form-heading">
+        <h2 id="form-heading">Chào mừng trở lại</h2><p>Đăng nhập để tiếp tục ngày làm việc của bạn.</p>
+        <form asp-action="Login" method="post">
+            <input asp-for="ReturnUrl" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <div class="mb-3"><label asp-for="Username" class="form-label"></label><input asp-for="Username" class="form-control" autocomplete="username" placeholder="Nhập tên đăng nhập" /><span asp-validation-for="Username" class="text-danger"></span></div>
+            <div class="mb-3"><label asp-for="Password" class="form-label"></label><div class="password-field"><input asp-for="Password" class="form-control" autocomplete="current-password" placeholder="Nhập mật khẩu" /><button type="button" class="password-toggle" id="password-toggle" aria-label="Hiện mật khẩu" aria-controls="Password" aria-pressed="false">Hiện</button></div><span asp-validation-for="Password" class="text-danger"></span></div>
+            <button type="submit" class="btn btn-primary">Đăng nhập <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="login-security-note">Phiên đăng nhập có thời hạn tối đa 2 giờ.<br />Hãy đăng xuất khi kết thúc làm việc trên thiết bị dùng chung.</p>
+    </section>
+</div>
 @section Scripts { <partial name="_ValidationScriptsPartial" /> }

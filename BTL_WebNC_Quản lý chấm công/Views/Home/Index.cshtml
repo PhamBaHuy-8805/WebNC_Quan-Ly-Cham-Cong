@@ -1,38 +1,60 @@
 @model HomeVisitViewModel
 @{
-    ViewData["Title"] = "Trang chủ";
+    ViewData["Title"] = "Tổng quan";
     var vietnamOffset = TimeSpan.FromHours(7);
+    var current = Model.CurrentVisit.ToOffset(vietnamOffset);
+    var greeting = User.Identity?.IsAuthenticated == true ? $"Xin chào, {User.Identity.Name}" : "Chào một ngày làm việc mới";
 }
-
-<h1>Quản lý chấm công</h1>
-<p class="text-muted">Theo dõi chấm công, nghỉ phép và tăng ca của bạn.</p>
-
-<section class="card mb-4" aria-labelledby="visit-heading">
-    <div class="card-body">
-        <h2 id="visit-heading" class="h5">Lịch sử truy cập trên trình duyệt này</h2>
-        <dl class="row mb-0">
-            <dt class="col-sm-5">Số lần truy cập trang chủ</dt>
-            <dd class="col-sm-7">@Model.VisitCount</dd>
-            <dt class="col-sm-5">Lần truy cập trước (giờ Việt Nam)</dt>
-            <dd class="col-sm-7">
-                @if (Model.PreviousVisit is DateTimeOffset previousVisit)
-                {
-                    <time datetime="@previousVisit.ToString("O")">@previousVisit.ToOffset(vietnamOffset).ToString("dd/MM/yyyy HH:mm:ss")</time>
-                }
-                else
-                {
-                    <span>Chưa có lịch sử truy cập trước đó.</span>
-                }
-            </dd>
-            <dt class="col-sm-5">Lần truy cập hiện tại (giờ Việt Nam)</dt>
-            <dd class="col-sm-7"><time datetime="@Model.CurrentVisit.ToString("O")">@Model.CurrentVisit.ToOffset(vietnamOffset).ToString("dd/MM/yyyy HH:mm:ss")</time></dd>
-        </dl>
-        <p class="text-muted mb-0">Mỗi lần mở hoặc tải lại trang chủ được tính là một lượt. Lịch sử được lưu bằng cookie trong 30 ngày kể từ lần truy cập gần nhất, kể cả khi đóng rồi mở lại trình duyệt. Xóa cookie hoặc dùng trình duyệt khác sẽ bắt đầu lịch sử mới.</p>
+<div class="home-heading">
+    <div><span class="eyebrow">MỖI NGÀY ĐỀU CÓ Ý NGHĨA</span><h1>@greeting<span style="color:#6a9c7c">.</span></h1><p>Mọi thông tin công việc, gọn gàng trong một không gian.</p></div>
+    <time class="period-pill" datetime="@current.ToString("yyyy-MM-dd")">@current.ToString("dd 'tháng' MM, yyyy")</time>
+</div>
+<section class="home-hero" aria-labelledby="hero-title">
+    <div class="hero-copy">
+        <span class="eyebrow">CHỦ ĐỘNG HÔM NAY · VỮNG BƯỚC NGÀY MAI</span>
+        <h2 id="hero-title">Bắt nhịp công việc.<br />Trọn vẹn mỗi ngày.</h2>
+        <p>Ghi nhận giờ làm, theo dõi yêu cầu và quản lý ngày công của bạn một cách dễ dàng.</p>
+        <a asp-controller="Attendance" asp-action="Index" class="btn btn-primary">Đến trang chấm công <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+        <div class="hero-orbit"></div>
+        <div class="clock-face"><span class="clock-tick tick-12">12</span><span class="clock-tick tick-3">3</span><span class="clock-tick tick-6">6</span><span class="clock-tick tick-9">9</span><span class="clock-dot"></span></div>
+        <span class="hero-tag top">✓ Chủ động thời gian</span><span class="hero-tag bottom">Một ngày thật hiệu quả ↗</span>
     </div>
 </section>
-
-<div class="d-flex flex-wrap gap-2">
-    <a asp-controller="Attendance" asp-action="Index" class="btn btn-primary">Chấm công</a>
-    <a asp-controller="Leave" asp-action="Index" class="btn btn-outline-primary">Nghỉ phép</a>
-    <a asp-controller="Overtime" asp-action="Index" class="btn btn-outline-primary">Tăng ca</a>
+<div class="section-heading"><h2>Bạn muốn làm gì hôm nay?</h2><span>Truy cập nhanh các chức năng</span></div>
+<div class="feature-grid">
+    <a class="feature-card" asp-controller="Attendance" asp-action="Index"><span class="feature-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="feature-arrow" aria-hidden="true">↗</span><h3>Chấm công</h3><p>Vào ca, kết thúc ca và theo dõi lịch sử làm việc.</p></a>
+    <a class="feature-card" asp-controller="Leave" asp-action="Index"><span class="feature-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4m8-4v4M3 11h18m-12 5 2 2 5-5"/></svg></span><span class="feature-arrow" aria-hidden="true">↗</span><h3>Nghỉ phép</h3><p>Gửi yêu cầu nghỉ và theo dõi kết quả phê duyệt.</p></a>
+    <a class="feature-card" asp-controller="Overtime" asp-action="Index"><span class="feature-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m13 2-9 12h7l-1 8 10-12h-8Z"/></svg></span><span class="feature-arrow" aria-hidden="true">↗</span><h3>Tăng ca</h3><p>Đăng ký thời gian làm thêm và xem các yêu cầu.</p></a>
+    <a class="feature-card" asp-controller="Payroll" asp-action="Index"><span class="feature-icon"><svg class="ui-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18m-5 4h5v4h-5Z"/></svg></span><span class="feature-arrow" aria-hidden="true">↗</span><h3>Bảng lương</h3><p>Tra cứu ngày công, phụ cấp và thông tin lương.</p></a>
 </div>
+<div class="home-bottom">
+    <section class="card workday-card" aria-labelledby="schedule-heading">
+        <h2 id="schedule-heading">Khung giờ làm việc</h2>
+        <div class="schedule-line"><div><small>BẮT ĐẦU CA</small><strong>08:00</strong></div><span aria-hidden="true">───</span><div><small>KẾT THÚC CA</small><strong>17:00</strong></div><span class="badge bg-success">8 giờ / ngày</span></div>
+        <p>Nghỉ trưa 12:00–13:00 · Giờ Việt Nam (UTC+7).</p>
+    </section>
+    <section class="card workday-card" aria-labelledby="reminder-heading">
+        <h2 id="reminder-heading">Một nhắc nhỏ cho ngày mới</h2>
+        <p class="mt-0">Nhớ check-in khi bắt đầu làm việc và check-out khi kết thúc ca để bản chấm công được gửi đến HR xác nhận.</p>
+        <a asp-controller="Attendance" asp-action="Index" class="btn btn-outline-primary btn-sm mt-3 align-self-start">Xem chấm công <span aria-hidden="true">→</span></a>
+    </section>
+</div>
+@if (User.IsInRole("HR") || User.IsInRole("Admin"))
+{
+    <div class="admin-shortcuts"><a href="@Url.Content("~/Employees")" class="btn btn-outline-secondary btn-sm">Quản lý nhân viên</a><a asp-controller="Payroll" asp-action="Summary" class="btn btn-outline-secondary btn-sm">Tổng hợp công</a><a asp-controller="Report" asp-action="Index" class="btn btn-outline-secondary btn-sm">Báo cáo thống kê</a></div>
+}
+<details class="visit-details mt-4">
+    <summary>Lịch sử truy cập trên trình duyệt này</summary>
+    <dl class="row mb-0">
+        <dt class="col-sm-5">Số lần truy cập trang chủ</dt><dd class="col-sm-7">@Model.VisitCount</dd>
+        <dt class="col-sm-5">Lần truy cập trước</dt><dd class="col-sm-7">
+        @if (Model.PreviousVisit is DateTimeOffset previousVisit)
+        { <time datetime="@previousVisit.ToString("O")">@previousVisit.ToOffset(vietnamOffset).ToString("dd/MM/yyyy HH:mm:ss")</time> }
+        else { <span>Chưa có lịch sử truy cập trước đó.</span> }
+        </dd>
+        <dt class="col-sm-5">Lần truy cập hiện tại</dt><dd class="col-sm-7"><time datetime="@Model.CurrentVisit.ToString("O")">@current.ToString("dd/MM/yyyy HH:mm:ss")</time></dd>
+    </dl>
+    <p>Mỗi lần mở trang chủ được tính là một lượt. Lịch sử lưu bằng cookie trong 30 ngày; xóa cookie hoặc đổi trình duyệt sẽ bắt đầu lịch sử mới.</p>
+</details>
