@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using BTL_WebNC_Quản_lý_chấm_công.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using BTL_WebNC_Quản_lý_chấm_công.Services;
+using BTL_WebNC_Quản_lý_chấm_công.Models;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,8 +25,20 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddScoped<AccountCookieEvents>();
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.Configure<PayrollOptions>(builder.Configuration.GetSection("Payroll"));
-builder.Services.AddScoped<PayrollCalculator>();
+builder.Services.AddScoped<PayrollService>();
+builder.Services.AddScoped<ReportService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.Name = ".BTLWebNC.Session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+builder.Services.AddIdentityCore<Account>().AddUserStore<ExistingAccountUserStore>();
+builder.Services.AddScoped<IPasswordHasher<Account>, ExistingAccountPasswordHasher>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -59,6 +73,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();

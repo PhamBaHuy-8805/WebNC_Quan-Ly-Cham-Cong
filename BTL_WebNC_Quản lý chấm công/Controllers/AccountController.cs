@@ -7,10 +7,11 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace BTL_WebNC_Quản_lý_chấm_công.Controllers;
 
-public class AccountController(ApplicationDbContext context) : Controller
+public class AccountController(ApplicationDbContext context, UserManager<Account> userManager) : Controller
 {
     [HttpGet, AllowAnonymous]
     public IActionResult Login(string? returnUrl = null) => View(new LoginViewModel { ReturnUrl = returnUrl });
@@ -24,7 +25,7 @@ public class AccountController(ApplicationDbContext context) : Controller
         // Bản thực hành dùng mật khẩu thường theo yêu cầu; giữ tên cột cũ để tương thích DB.
         var valid = account is { Status: "Active", Role: not null, Employee: { Status: "Active" } }
             && account.Role.RoleName is "Employee" or "HR" or "Admin"
-            && string.Equals(account.PasswordHash, model.Password, StringComparison.Ordinal);
+            && await userManager.CheckPasswordAsync(account, model.Password);
         if (!valid)
         {
             ModelState.AddModelError(string.Empty, "Tài khoản hoặc mật khẩu không hợp lệ, hoặc hồ sơ đã ngừng hoạt động.");
@@ -45,6 +46,9 @@ public class AccountController(ApplicationDbContext context) : Controller
                 IsPersistent = false,
                 AllowRefresh = false
             });
+        HttpContext.Session.SetString("LoginUser", account.Username);
+        HttpContext.Session.SetString("LoginRole", account.Role.RoleName);
+        HttpContext.Session.SetInt32("EmployeeID", account.EmployeeID.Value);
         return Url.IsLocalUrl(model.ReturnUrl) ? LocalRedirect(model.ReturnUrl!) : RedirectToAction("Index", "Attendance");
     }
 
@@ -52,6 +56,7 @@ public class AccountController(ApplicationDbContext context) : Controller
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync();
+        HttpContext.Session.Clear();
         return RedirectToAction(nameof(Login));
     }
 

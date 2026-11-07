@@ -119,20 +119,20 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Data
             var yesterday = today.AddDays(-1);
             context.Attendances.AddRange( new Attendance
             {
-                Employee = e1, WorkDate = today, CheckIn = today.AddHours(7).AddMinutes(55), CheckOut = today.AddHours(16).AddMinutes(5), TotalHours = 7.17m, Status = "Present"
+                Employee = e1, WorkDate = today, CheckIn = today.AddHours(7).AddMinutes(55), CheckOut = today.AddHours(17).AddMinutes(5), TotalHours = 8.17m, Status = "Present"
             }
             , new Attendance
             {
-                Employee = e2, WorkDate = today, CheckIn = today.AddHours(8).AddMinutes(25), CheckOut = today.AddHours(16).AddMinutes(30), TotalHours = 7.08m, Status = "Late", Note = "Kẹt xe"
+                Employee = e2, WorkDate = today, CheckIn = today.AddHours(8).AddMinutes(25), CheckOut = today.AddHours(17).AddMinutes(30), TotalHours = 8.08m, Status = "Late", Note = "Kẹt xe"
             }
             , new Attendance
             {
-                Employee = e3, WorkDate = today, CheckIn = today.AddHours(8), CheckOut = today.AddHours(15).AddMinutes(30), TotalHours = 6.5m, Status = "EarlyLeave", Note = "Về sớm có việc riêng"
+                Employee = e3, WorkDate = today, CheckIn = today.AddHours(8), CheckOut = today.AddHours(16).AddMinutes(30), TotalHours = 7.5m, Status = "EarlyLeave", Note = "Về sớm có việc riêng"
             }
             ,
             new Attendance
             {
-                Employee = e4, WorkDate = today, CheckIn = today.AddHours(8).AddMinutes(20), CheckOut = today.AddHours(15).AddMinutes(40), TotalHours = 6.33m, Status = "LateEarly"
+                Employee = e4, WorkDate = today, CheckIn = today.AddHours(8).AddMinutes(20), CheckOut = today.AddHours(16).AddMinutes(40), TotalHours = 7.33m, Status = "LateAndEarly"
             }
             , new Attendance
             {
@@ -140,7 +140,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Data
             }
             , new Attendance
             {
-                Employee = e1, WorkDate = yesterday, CheckIn = yesterday.AddHours(8), CheckOut = yesterday.AddHours(16), TotalHours = 7m, Status = "Present"
+                Employee = e1, WorkDate = yesterday, CheckIn = yesterday.AddHours(8), CheckOut = yesterday.AddHours(17), TotalHours = 8m, Status = "Present"
             }
             , new Attendance
             {
@@ -312,10 +312,10 @@ var last = today.AddMonths(-1);
                     EmployeeID = employee.EmployeeID,
                     WorkDate = workDate,
                     CheckIn = workDate.AddHours(8),
-                    CheckOut = workDate.AddHours(16),
-                    TotalHours = 7m,
+                    CheckOut = workDate.AddHours(17),
+                    TotalHours = 8m,
                     Status = "Present",
-                    Note = "Dữ liệu mẫu: 08:00–16:00, trừ 1 giờ nghỉ trưa."
+                    Note = "Dữ liệu mẫu: 08:00–17:00, trừ 1 giờ nghỉ trưa."
                 });
             }
 

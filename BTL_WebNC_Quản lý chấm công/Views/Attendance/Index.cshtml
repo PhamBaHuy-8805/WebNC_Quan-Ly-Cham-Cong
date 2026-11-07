@@ -1,12 +1,20 @@
 @model AttendanceIndexViewModel
 @{ ViewData["Title"] = Model.IsReviewer ? "Xác nhận chấm công" : "Chấm công của tôi"; }
 <h1>@ViewData["Title"]</h1>
+<section class="card mb-3">
+    <div class="card-header">Thực hành buổi 7 - Cookies và Session</div>
+    <div class="card-body">
+        <p><strong>Lượt truy cập:</strong> @ViewBag.CookieVisitCount · <strong>Lần trước:</strong> @ViewBag.CookiePreviousVisit</p>
+        <p><strong>Lượt mở trong Session:</strong> @ViewBag.SessionViews · <strong>Tài khoản:</strong> @ViewBag.SessionUserName · <strong>Vai trò:</strong> @ViewBag.SessionRole</p>
+        <p><strong>Chức năng gần nhất:</strong> @ViewBag.SessionLastFeature</p>
+    </div>
+</section>
 @if (User.IsInRole("Employee"))
 {
     <section class="card my-3">
         <div class="card-body">
             <h2 class="h5">Hôm nay · @Model.Today.ToString("dd/MM/yyyy")</h2>
-            <p>Giờ Việt Nam · Ca 08:00–16:00 · Nghỉ trưa 12:00–13:00 · 7 giờ công/ngày. Đi muộn từ 120 phút tính vắng cả ngày khi tính lương.</p>
+            <p>Giờ Việt Nam · Ca 08:00–17:00 · Nghỉ trưa 12:00–13:00 · 8 giờ/ngày. Phạt đi muộn hoặc về sớm: 50.000đ mỗi lần.</p>
             <p class="text-muted">Check-in khi bắt đầu làm việc. Khi check-out, bản chấm công sẽ được gửi cho HR phê duyệt. Bạn có thể theo dõi kết quả ở danh sách bên dưới.</p>
             @if (Model.TodayAttendance == null)
             {

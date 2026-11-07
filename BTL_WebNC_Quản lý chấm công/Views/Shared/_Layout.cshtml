@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="utf-8" />
@@ -22,13 +22,42 @@
                         <li class="nav-item"><a class="nav-link text-dark" asp-controller="Attendance" asp-action="Index">Chấm công</a></li>
                         <li class="nav-item"><a class="nav-link text-dark" asp-controller="Leave" asp-action="Index">Nghỉ phép</a></li>
                         <li class="nav-item"><a class="nav-link text-dark" asp-controller="Overtime" asp-action="Index">Tăng ca</a></li>
-                        <li class="nav-item"><a class="nav-link text-dark" asp-controller="Payroll" asp-action="Index">Bảng lương</a></li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Payroll" asp-action="Index">Bảng lương</a></li>
+                        }
+                        
                         @if (User.IsInRole("HR") || User.IsInRole("Admin"))
                         {
-                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Employee" asp-action="Index">Nhân viên</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Department" asp-action="Index">Phòng ban</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-controller="Position" asp-action="Index">Chức vụ</a></li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark"
+                                asp-controller="Payroll"
+                                asp-action="Summary">Tổng hợp công</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link text-dark"
+                                asp-controller="Report"
+                                asp-action="Index">Báo cáo</a>
+                        </li>
+
+                        <!-- Quản lý nhân sự -->
+                        <li class="nav-item">
+                            <a class="nav-link text-dark"
+                                href="@Url.Content("~/Employees")">Nhân viên</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link text-dark"
+                                href="@Url.Content("~/Departments")">Phòng ban</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link text-dark"
+                                href="@Url.Content("~/Positions")">Chức vụ</a>
+                        </li>
                         }
+
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
@@ -39,7 +68,6 @@
                     @if (User.Identity?.IsAuthenticated == true)
                     {
                         <span class="me-3">@User.Identity.Name</span>
-                        <span class="badge bg-secondary me-3">@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
                         <form asp-controller="Account" asp-action="Logout" method="post">
                             <button type="submit" class="btn btn-outline-secondary">Đăng xuất</button>
                         </form>
@@ -77,4 +105,3 @@
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-

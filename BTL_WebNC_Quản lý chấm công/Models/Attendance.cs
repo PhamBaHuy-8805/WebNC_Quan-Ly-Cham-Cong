@@ -26,21 +26,29 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Models
         [StringLength(500)]
         public string? Note { get; set; }
 
+        // Liên kết với nhân viên chấm công
         public Employee? Employee { get; set; }
 
+        // Trạng thái phê duyệt
         [Required, StringLength(20)]
         public string ApprovalStatus { get; set; } = "Pending";
 
+        // ID nhân viên phê duyệt
         public int? ReviewedBy { get; set; }
 
+        // Liên kết với nhân viên phê duyệt
         public Employee? Reviewer { get; set; }
 
+        // Thời gian phê duyệt
         public DateTime? ReviewedAt { get; set; }
 
+        // Ghi chú phê duyệt
         [StringLength(500)]
         public string? ReviewNote { get; set; }
 
+        // Kiểm soát cập nhật đồng thời
         [Timestamp]
-        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+        public byte[] RowVersion { get; set; }
+            = Array.Empty<byte>();
     }
 }

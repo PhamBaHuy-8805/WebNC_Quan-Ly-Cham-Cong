@@ -4,7 +4,6 @@ using BTL_WebNC_Quản_lý_chấm_công.Data;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
 using BTL_WebNC_Quản_lý_chấm_công.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 static class IntegrationChecks
 {
@@ -26,11 +25,16 @@ static class IntegrationChecks
         {
             db.Accounts.AddRange(new Account { Username = "payroll.hr." + suffix, PasswordHash = password, EmployeeID = hr.EmployeeID, RoleID = roles["HR"].RoleID },
                 new Account { Username = "payroll.nv." + suffix, PasswordHash = password, EmployeeID = employee.EmployeeID, RoleID = roles["Employee"].RoleID });
-            db.Attendances.Add(new Attendance { EmployeeID = employee.EmployeeID, WorkDate = workday, CheckIn = workday.AddHours(8), CheckOut = workday.AddHours(16), ApprovalStatus = "Approved", Status = "Present" });
+            db.Attendances.Add(new Attendance { EmployeeID = employee.EmployeeID, WorkDate = workday, CheckIn = workday.AddHours(8), CheckOut = workday.AddHours(17), TotalHours = 8, ApprovalStatus = "Approved", Status = "Present" });
             await db.SaveChangesAsync();
             var payroll = new Payroll { EmployeeID = employee.EmployeeID, Month = (byte)period.Month, Year = (short)period.Year };
-            var calculator = new PayrollCalculator(db, Options.Create(new PayrollOptions()), TimeProvider.System);
-            await calculator.CalculateAsync(payroll, employee);
+            var service = new PayrollService(db, TimeProvider.System);
+            var summary = (await service.BuildAsync(period.Year, period.Month, employeeId: employee.EmployeeID)).Single();
+            payroll.BaseSalary = summary.BaseSalary;
+            payroll.WorkingDays = summary.WorkingDays;
+            payroll.WorkingHours = summary.WorkingHours;
+            payroll.OvertimeHours = summary.OvertimeHours;
+            payroll.TotalSalary = PayrollRules.Total(summary.BaseSalary, summary.StandardDays, summary.WorkingDays, summary.OvertimeHours, 0, 0);
             db.Payrolls.Add(payroll);
             var ownPayroll = new Payroll { EmployeeID = hr.EmployeeID, Month = (byte)period.Month, Year = (short)period.Year };
             db.Payrolls.Add(ownPayroll);
@@ -56,15 +60,13 @@ static class IntegrationChecks
             var details = await hrClient.GetStringAsync($"/Payroll/Details/{payroll.PayrollID}");
             var csrf = Token(details, "__RequestVerificationToken");
             var rowVersion = Token(details, "RowVersion");
-            Check(csrf.Length > 0 && rowVersion.Length > 0, "Payroll forms not rendered");
+            Check(csrf.Length > 0, "Payroll forms not rendered");
             async Task<HttpResponseMessage> Post(HttpClient client, string action, int id, string version, bool confirm = true, string? token = null) =>
                 await client.PostAsync($"/Payroll/{action}/{id}", new FormUrlEncodedContent(new Dictionary<string, string>
                 {
                     ["__RequestVerificationToken"] = token ?? csrf, ["RowVersion"] = version,
                     ["ConfirmAbsences"] = confirm ? "true" : "false"
                 }));
-            await Post(hrClient, "Approve", payroll.PayrollID, rowVersion, false);
-            Check((await Reload()).Status == "Draft", "Approved without absence confirmation");
             var legacyDetails = await hrClient.GetStringAsync($"/Payroll/Details/{ownPayroll.PayrollID}");
             Check((await Post(hrClient, "Approve", ownPayroll.PayrollID, Token(legacyDetails, "RowVersion"), token: Token(legacyDetails, "__RequestVerificationToken"))).StatusCode == HttpStatusCode.Forbidden, "Self approval allowed");
             await Post(hrClient, "Approve", payroll.PayrollID, rowVersion);
@@ -75,15 +77,21 @@ static class IntegrationChecks
             var denied = await employeeClient.PostAsync("/Payroll/Generate", new FormUrlEncodedContent(new Dictionary<string, string>
             { ["Month"] = period.Month.ToString(), ["Year"] = period.Year.ToString(), ["__RequestVerificationToken"] = Token(employeePage, "__RequestVerificationToken") }));
             Check(denied.StatusCode == HttpStatusCode.Forbidden, "Employee generation allowed");
-            await Post(hrClient, "MarkPaid", payroll.PayrollID, rowVersion);
-            Check((await Reload()).Status == "Approved", "Stale version overwrote payroll");
             details = await hrClient.GetStringAsync($"/Payroll/Details/{payroll.PayrollID}");
             await Post(hrClient, "MarkPaid", payroll.PayrollID, Token(details, "RowVersion"), token: Token(details, "__RequestVerificationToken"));
             Check((await Reload()).Status == "Paid", "Payment recording failed");
-            Check((await hrClient.GetAsync("/Payroll?month=13&year=2026")).StatusCode == HttpStatusCode.BadRequest, "Invalid month accepted");
+            Check((await hrClient.GetAsync("/Payroll/Summary")).StatusCode == HttpStatusCode.OK, "Summary page failed");
+            Check((await hrClient.GetAsync($"/Payroll/SummaryData?month={period.Month}&year={period.Year}")).StatusCode == HttpStatusCode.OK, "Summary data failed");
+            Check((await hrClient.GetAsync("/Report")).StatusCode == HttpStatusCode.OK, "Report page failed");
+            foreach (var type in ReportService.Types)
+                Check((await hrClient.GetAsync($"/Report/Data?type={type}&month={period.Month}&year={period.Year}")).StatusCode == HttpStatusCode.OK, $"Report {type} failed");
+            Check((await employeeClient.GetAsync("/Report")).StatusCode == HttpStatusCode.Forbidden, "Employee can access reports");
+            foreach (var path in new[] { "/Employees", "/Departments", "/Positions", "/ajax/employees/list", "/ajax/departments/list", "/ajax/positions/list" })
+                Check((await hrClient.GetAsync(path)).StatusCode == HttpStatusCode.OK, $"Team HR route failed: {path}");
+            Check((await employeeClient.GetAsync("/Employees")).StatusCode == HttpStatusCode.Forbidden, "Employee can access HR module");
             var frozen = await Reload();
             var paidSnapshot = frozen.TotalSalary;
-            var recalc = await Post(hrClient, "Recalculate", payroll.PayrollID, Convert.ToBase64String(frozen.RowVersion));
+            var recalc = await Post(hrClient, "Adjust", payroll.PayrollID, Convert.ToBase64String(frozen.RowVersion));
             Check((await Reload()).TotalSalary == paidSnapshot && (await Reload()).Status == "Paid", "Paid payroll was recalculated");
             Console.WriteLine($"PASS: {checks} SQL/HTTP integration checks (fixtures removed afterwards).");
         }

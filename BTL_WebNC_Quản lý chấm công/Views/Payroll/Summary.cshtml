@@ -1,0 +1,75 @@
+@model PayrollSummaryViewModel
+@{ ViewData["Title"] = "Tổng hợp công"; }
+<h1>Tổng hợp công tháng <span id="period">@Model.Month.ToString("00")/@Model.Year</span></h1>
+<p class="text-muted">Chỉ tính các bản chấm công đã được HR xác nhận, đơn nghỉ phép và tăng ca đã duyệt. Dữ liệu được tải bằng Fetch API khi đổi bộ lọc.</p>
+<form id="filter" class="row g-2 mb-3">
+    <div class="col-md-2"><label class="form-label">Tháng</label>
+        <select name="month" class="form-select">
+            @for (var i = 1; i <= 12; i++) { <option value="@i" selected="@(i == Model.Month)">Tháng @i</option> }
+        </select></div>
+    <div class="col-md-2"><label class="form-label">Năm</label>
+        <input type="number" name="year" value="@Model.Year" min="2000" max="2100" class="form-control" /></div>
+    <div class="col-md-3"><label class="form-label">Phòng ban</label>
+        <select name="departmentId" class="form-select">
+            <option value="">Tất cả</option>
+            @foreach (var d in Model.Departments) { <option value="@d.Id" selected="@(Model.DepartmentId == d.Id)">@d.Name</option> }
+        </select></div>
+    <div class="col-md-3"><label class="form-label">Mã / tên nhân viên</label>
+        <input name="search" value="@Model.Search" class="form-control" /></div>
+    <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary" type="submit">Xem</button></div>
+</form>
+<div id="msg" class="alert alert-info d-none"></div>
+<p id="meta" class="mb-2"></p>
+<div class="table-responsive"><table class="table table-striped table-sm align-middle">
+<thead><tr><th>Mã NV</th><th>Họ tên</th><th>Phòng ban</th><th class="text-end">Ngày công</th><th class="text-end">Nghỉ có lương</th>
+<th class="text-end">Nghỉ không lương</th><th class="text-end">Giờ làm</th><th class="text-end">Giờ TC</th><th class="text-end">Đi muộn</th>
+<th class="text-end">Về sớm</th><th class="text-end">Vắng</th><th class="text-end">Chờ xác nhận</th></tr></thead>
+<tbody id="rows"></tbody></table></div>
+@section Scripts {
+<script>
+(function () {
+    const form = document.getElementById('filter');
+    const rows = document.getElementById('rows');
+    const msg = document.getElementById('msg');
+    const meta = document.getElementById('meta');
+    const nf = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
+    function cell(text, right) {
+        const td = document.createElement('td');
+        td.textContent = text;
+        if (right) td.className = 'text-end';
+        return td;
+    }
+    async function load() {
+        const params = new URLSearchParams(new FormData(form));
+        msg.classList.add('d-none');
+        try {
+            const res = await fetch('@Url.Action("SummaryData", "Payroll")?' + params.toString(), { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            rows.replaceChildren();
+            for (const r of data.rows) {
+                const tr = document.createElement('tr');
+                tr.append(cell(r.employeeCode), cell(r.fullName), cell(r.departmentName),
+                    cell(nf.format(r.workingDays), true), cell(r.paidLeaveDays, true), cell(r.unpaidLeaveDays, true),
+                    cell(nf.format(r.workingHours), true), cell(nf.format(r.overtimeHours), true),
+                    cell(r.lateCount, true), cell(r.earlyCount, true), cell(r.absentDays, true), cell(r.pendingDays, true));
+                rows.append(tr);
+            }
+            if (data.rows.length === 0) {
+                const tr = document.createElement('tr');
+                const td = cell('Không có nhân viên phù hợp.'); td.colSpan = 12; td.className = 'text-center';
+                tr.append(td); rows.append(tr);
+            }
+            meta.textContent = data.rows.length + ' nhân viên · Ngày công chuẩn của tháng: ' + data.standardDays;
+            document.getElementById('period').textContent = String(params.get('month')).padStart(2, '0') + '/' + params.get('year');
+        } catch (e) {
+            msg.textContent = 'Không tải được dữ liệu. Vui lòng thử lại.';
+            msg.classList.remove('d-none');
+        }
+    }
+    form.addEventListener('submit', function (e) { e.preventDefault(); load(); });
+    form.addEventListener('change', load);
+    load();
+})();
+</script>
+}

@@ -1,0 +1,107 @@
+@model ReportPageViewModel
+@{ ViewData["Title"] = "Báo cáo và thống kê"; }
+<h1>@ViewData["Title"]</h1>
+<form id="filter" class="row g-2 mb-3">
+    <div class="col-md-3"><label class="form-label">Loại báo cáo</label>
+        <select name="type" class="form-select">
+            <option value="attendance" selected="@(Model.Type == "attendance")">Chấm công (đi muộn/về sớm)</option>
+            <option value="overtime" selected="@(Model.Type == "overtime")">Tăng ca</option>
+            <option value="leave" selected="@(Model.Type == "leave")">Nghỉ phép</option>
+            <option value="payroll" selected="@(Model.Type == "payroll")">Công lương</option>
+        </select></div>
+    <div class="col-md-2"><label class="form-label">Tháng</label>
+        <select name="month" class="form-select">
+            @for (var i = 1; i <= 12; i++) { <option value="@i" selected="@(i == Model.Month)">Tháng @i</option> }
+        </select></div>
+    <div class="col-md-2"><label class="form-label">Năm</label>
+        <input type="number" name="year" value="@Model.Year" min="2000" max="2100" class="form-control" /></div>
+    <div class="col-md-3"><label class="form-label">Phòng ban</label>
+        <select name="departmentId" class="form-select">
+            <option value="">Tất cả</option>
+            @foreach (var d in Model.Departments) { <option value="@d.Id" selected="@(Model.DepartmentId == d.Id)">@d.Name</option> }
+        </select></div>
+    <div class="col-md-2 d-flex align-items-end gap-2">
+        <button class="btn btn-primary" type="submit">Xem</button>
+        <a id="export" class="btn btn-outline-secondary" href="#">Xuất CSV</a>
+    </div>
+</form>
+
+<div id="msg" class="alert alert-info d-none"></div>
+<h2 id="title" class="h4"></h2>
+<div id="kpis" class="row g-3 mb-4"></div>
+<div class="card mb-4"><div class="card-body">
+    <h3 id="chartTitle" class="h6 mb-3"></h3>
+    <div id="chart"></div>
+</div></div>
+<div class="table-responsive"><table class="table table-striped table-sm align-middle">
+    <thead id="head"></thead><tbody id="body"></tbody>
+</table></div>
+<p id="note" class="text-muted"></p>
+
+@section Scripts {
+<script>
+(function () {
+    const form = document.getElementById('filter');
+    const $ = id => document.getElementById(id);
+    const nf = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
+    const dataUrl = '@Url.Action("Data", "Report")';
+    const exportUrl = '@Url.Action("ExportCsv", "Report")';
+    function el(tag, text, cls) {
+        const e = document.createElement(tag);
+        if (text !== undefined) e.textContent = text;
+        if (cls) e.className = cls;
+        return e;
+    }
+    function render(d) {
+        $('title').textContent = d.title;
+        const kpis = $('kpis'); kpis.replaceChildren();
+        for (const k of d.kpis) {
+            const col = el('div', undefined, 'col-6 col-md-3');
+            const card = el('div', undefined, 'card h-100'); const body = el('div', undefined, 'card-body');
+            body.append(el('div', k.label, 'text-muted small'), el('div', k.value, 'fs-4 fw-bold'));
+            card.append(body); col.append(card); kpis.append(col);
+        }
+        // Biểu đồ cột thuần HTML/CSS, không cần thư viện ngoài.
+        $('chartTitle').textContent = d.chartTitle;
+        const chart = $('chart'); chart.replaceChildren();
+        const max = Math.max(0, ...d.chartValues);
+        d.chartLabels.forEach((label, i) => {
+            const v = d.chartValues[i];
+            const row = el('div', undefined, 'd-flex align-items-center mb-2');
+            const name = el('div', label, 'me-2 text-truncate'); name.style.width = '160px';
+            const track = el('div', undefined, 'flex-grow-1 bg-light rounded'); 
+            const bar = el('div', undefined, 'bg-primary rounded'); bar.style.height = '20px';
+            bar.style.width = (max > 0 ? Math.max(v / max * 100, v > 0 ? 1 : 0) : 0) + '%';
+            track.append(bar);
+            const val = el('div', nf.format(v), 'ms-2 text-end'); val.style.width = '120px';
+            row.append(name, track, val); chart.append(row);
+        });
+        if (d.chartLabels.length === 0) chart.append(el('div', 'Chưa có dữ liệu để vẽ biểu đồ.', 'text-muted'));
+        const head = $('head'); head.replaceChildren();
+        const hr = el('tr'); d.columns.forEach(c => hr.append(el('th', c))); head.append(hr);
+        const body = $('body'); body.replaceChildren();
+        for (const r of d.rows) { const tr = el('tr'); r.forEach(c => tr.append(el('td', c))); body.append(tr); }
+        if (d.rows.length === 0) {
+            const tr = el('tr'); const td = el('td', 'Không có dữ liệu.', 'text-center'); td.colSpan = d.columns.length; tr.append(td); body.append(tr);
+        }
+        $('note').textContent = d.note || '';
+    }
+    async function load() {
+        const qs = new URLSearchParams(new FormData(form)).toString();
+        $('export').href = exportUrl + '?' + qs;
+        $('msg').classList.add('d-none');
+        try {
+            const res = await fetch(dataUrl + '?' + qs, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            render(await res.json());
+        } catch (e) {
+            $('msg').textContent = 'Không tải được báo cáo. Vui lòng thử lại.';
+            $('msg').classList.remove('d-none');
+        }
+    }
+    form.addEventListener('submit', e => { e.preventDefault(); load(); });
+    form.addEventListener('change', load);
+    load();
+})();
+</script>
+}
