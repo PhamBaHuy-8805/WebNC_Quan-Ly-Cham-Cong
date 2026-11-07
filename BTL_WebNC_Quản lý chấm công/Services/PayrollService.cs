@@ -61,7 +61,8 @@ public class PayrollService(ApplicationDbContext context, TimeProvider clock)
         foreach (var e in employees)
         {
             var approved = attendances[e.EmployeeID]
-                .Where(a => a.ApprovalStatus == "Approved" && a.CheckIn != null && a.CheckOut != null).ToList();
+                .Where(a => a.ApprovalStatus == "Approved" && a.CheckInApprovalStatus == "Approved"
+                    && a.CheckOutApprovalStatus == "Approved" && a.CheckIn != null && a.CheckOut > a.CheckIn).ToList();
             var attended = approved.Select(a => a.WorkDate.Date).ToHashSet();
             var pending = attendances[e.EmployeeID].Where(a => a.ApprovalStatus == "Pending")
                 .Select(a => a.WorkDate.Date).ToHashSet();
@@ -105,7 +106,8 @@ public class PayrollService(ApplicationDbContext context, TimeProvider clock)
                 DepartmentID = e.DepartmentID, DepartmentName = e.Department?.DepartmentName ?? "Chưa có",
                 BaseSalary = e.Salary, StandardDays = standardDays,
                 AttendanceDays = attended.Count, PaidLeaveDays = paidLeave.Count, UnpaidLeaveDays = unpaidLeave.Count,
-                WorkingHours = approved.Sum(a => a.TotalHours), OvertimeHours = overtimes[e.EmployeeID].Sum(o => o.TotalHours),
+                WorkingHours = approved.Sum(a => a.TotalHours),
+                OvertimeHours = overtimes[e.EmployeeID].Where(o => attended.Contains(o.WorkDate.Date)).Sum(o => o.TotalHours),
                 LateCount = late, EarlyCount = early, AbsentDays = absent, PendingDays = pending.Count
             });
         }

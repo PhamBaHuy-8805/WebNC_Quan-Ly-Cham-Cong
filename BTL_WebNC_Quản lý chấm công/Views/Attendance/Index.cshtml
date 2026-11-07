@@ -15,20 +15,24 @@
         <div class="card-body">
             <h2 class="h5">Hôm nay · @Model.Today.ToString("dd/MM/yyyy")</h2>
             <p>Giờ Việt Nam · Ca 08:00–17:00 · Nghỉ trưa 12:00–13:00 · 8 giờ/ngày. Phạt đi muộn hoặc về sớm: 50.000đ mỗi lần.</p>
-            <p class="text-muted">Check-in khi bắt đầu làm việc. Khi check-out, bản chấm công sẽ được gửi cho HR phê duyệt. Bạn có thể theo dõi kết quả ở danh sách bên dưới.</p>
+            <p class="text-muted">Gửi check-in → HR xác nhận giờ vào → gửi check-out → HR xác nhận giờ ra. Chỉ khi cả hai bước được xác nhận mới tính công.</p>
             @if (Model.TodayAttendance == null)
             {
                 <p>Bạn chưa chấm công hôm nay.</p>
-                <form asp-action="CheckIn" method="post"><button class="btn btn-success" type="submit">Check-in · Vào làm</button></form>
+                <form asp-action="CheckIn" method="post"><button class="btn btn-success" type="submit">Gửi yêu cầu check-in</button></form>
             }
             else
             {
-                <p>Giờ vào: <strong>@(Model.TodayAttendance.CheckIn?.ToString("HH:mm:ss") ?? "Chưa có")</strong>
-                    · Giờ ra: <strong>@(Model.TodayAttendance.CheckOut?.ToString("HH:mm:ss") ?? "Chưa có")</strong></p>
-                @if (Model.TodayAttendance.CheckIn != null && Model.TodayAttendance.CheckOut == null && Model.TodayAttendance.ApprovalStatus == "Pending")
+                <p>Giờ gửi check-in: <strong>@(Model.TodayAttendance.CheckIn?.ToString("HH:mm:ss") ?? "Chưa có")</strong>
+                    · Giờ gửi check-out: <strong>@(Model.TodayAttendance.CheckOut?.ToString("HH:mm:ss") ?? "Chưa có")</strong></p>
+                @if (Model.TodayAttendance.CheckIn != null && Model.TodayAttendance.CheckOut == null && Model.TodayAttendance.CheckInApprovalStatus == "Approved")
                 {
-                    <form asp-action="CheckOut" method="post"><button class="btn btn-primary" type="submit">Check-out · Gửi HR phê duyệt</button></form>
+                    <form asp-action="CheckOut" method="post"><button class="btn btn-primary" type="submit">Gửi yêu cầu check-out</button></form>
                 }
+                else if (Model.TodayAttendance.CheckInApprovalStatus == "Pending")
+                { <p class="text-muted">Đang chờ HR xác nhận check-in. Chưa thể gửi check-out.</p> }
+                else if (Model.TodayAttendance.CheckInApprovalStatus == "Rejected")
+                { <p class="text-danger">Yêu cầu check-in bị từ chối. Xem lý do trong trang chi tiết.</p> }
                 <div class="mt-2"><partial name="_AttendanceApproval" model="Model.TodayAttendance" /></div>
                 <a class="d-inline-block mt-2" asp-action="Details" asp-route-id="@Model.TodayAttendance.AttendanceID">Xem bản chấm công hôm nay</a>
             }
@@ -37,7 +41,7 @@
 }
 else
 {
-    <p>Kiểm tra giờ vào, giờ ra và tổng giờ trước khi xác nhận. Bản chưa check-out chưa thể xử lý.</p>
+    <p>Xác nhận check-in ngay khi nhân viên gửi giờ vào. Khi nhân viên gửi check-out, xác nhận riêng giờ ra để hoàn tất ngày công.</p>
 }
 <form asp-action="Index" method="get" class="row g-2 mb-3">
     <div class="col-md-4"><label asp-for="Search" class="form-label">Mã hoặc tên nhân viên</label><input asp-for="Search" class="form-control" /></div>
@@ -49,7 +53,7 @@ else
 </form>
 <p>@Model.TotalCount bản ghi · Trang @Model.Page / @Model.TotalPages</p>
 <div class="table-responsive"><table class="table table-striped align-middle">
-    <thead><tr><th>Ngày</th><th>Nhân viên</th><th>Giờ vào</th><th>Giờ ra</th><th>Tổng giờ</th><th>Chấm công</th><th>HR xác nhận</th><th></th></tr></thead>
+    <thead><tr><th>Ngày</th><th>Nhân viên</th><th>Yêu cầu giờ vào</th><th>Yêu cầu giờ ra</th><th>Giờ đã xác nhận</th><th>Chấm công</th><th>HR xác nhận</th><th></th></tr></thead>
     <tbody>
     @if (Model.Items.Count == 0) { <tr><td colspan="8" class="text-center">Chưa có bản chấm công phù hợp.</td></tr> }
     @foreach (var item in Model.Items)
@@ -57,8 +61,8 @@ else
         <tr>
             <td>@item.WorkDate.ToString("dd/MM/yyyy")</td><td>@item.Employee?.EmployeeCode<br />@item.Employee?.FullName</td>
             <td>@(item.CheckIn?.ToString("HH:mm:ss") ?? "—")</td><td>@(item.CheckOut?.ToString("HH:mm:ss") ?? "Chưa check-out")</td>
-            <td>@(item.CheckOut.HasValue ? item.TotalHours.ToString("0.##") : "—")</td>
-            <td><partial name="_WorkStatus" model="item.Status" /></td>
+            <td>@(item.ApprovalStatus == "Approved" && item.CheckInApprovalStatus == "Approved" && item.CheckOutApprovalStatus == "Approved" ? item.TotalHours.ToString("0.##") : "—")</td>
+            <td>@if (item.ApprovalStatus == "Approved" && item.CheckInApprovalStatus == "Approved" && item.CheckOutApprovalStatus == "Approved") { <partial name="_WorkStatus" model="item.Status" /> } else { <span>Chưa hoàn tất</span> }</td>
             <td><partial name="_AttendanceApproval" model="item" /></td>
             <td><a asp-action="Details" asp-route-id="@item.AttendanceID">Chi tiết</a></td>
         </tr>

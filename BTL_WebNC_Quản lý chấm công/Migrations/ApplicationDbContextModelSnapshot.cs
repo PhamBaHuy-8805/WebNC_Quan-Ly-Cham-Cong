@@ -78,8 +78,28 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.Property<DateTime?>("CheckIn")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CheckInApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("CheckInReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("CheckInReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CheckInReviewedBy")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("CheckOut")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("CheckOutApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<int>("EmployeeID")
                         .HasColumnType("int");
@@ -116,6 +136,8 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                         .HasColumnType("date");
 
                     b.HasKey("AttendanceID");
+
+                    b.HasIndex("CheckInReviewedBy");
 
                     b.HasIndex("ReviewedBy");
 
@@ -454,6 +476,11 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
 
             modelBuilder.Entity("BTL_WebNC_Quản_lý_chấm_công.Models.Attendance", b =>
                 {
+                    b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "CheckInReviewer")
+                        .WithMany()
+                        .HasForeignKey("CheckInReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Employee")
                         .WithMany("Attendances")
                         .HasForeignKey("EmployeeID")
@@ -464,6 +491,8 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                         .WithMany()
                         .HasForeignKey("ReviewedBy")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CheckInReviewer");
 
                     b.Navigation("Employee");
 

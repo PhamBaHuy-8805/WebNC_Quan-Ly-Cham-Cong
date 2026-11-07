@@ -1,30 +1,37 @@
 @model Attendance
-@{ ViewData["Title"] = "Chi tiết chấm công"; }
+@{
+    ViewData["Title"] = "Chi tiết chấm công";
+    var completed = Model.ApprovalStatus == "Approved" && Model.CheckInApprovalStatus == "Approved" && Model.CheckOutApprovalStatus == "Approved";
+    var stage = Model.CheckIn != null && Model.CheckInApprovalStatus == "Pending" ? "CheckIn"
+        : Model.CheckInApprovalStatus == "Approved" && Model.CheckOut != null && Model.CheckOutApprovalStatus == "Pending" ? "CheckOut" : null;
+    var stageName = stage == "CheckIn" ? "check-in" : "check-out";
+}
 <h1>@ViewData["Title"]</h1>
+<p class="text-muted">Giờ dưới đây là thời điểm nhân viên gửi yêu cầu. Check-in và check-out chỉ được công nhận sau khi HR xác nhận từng bước.</p>
 <dl class="row">
     <dt class="col-sm-3">Nhân viên</dt><dd class="col-sm-9">@Model.Employee?.EmployeeCode — @Model.Employee?.FullName</dd>
     <dt class="col-sm-3">Ngày làm việc</dt><dd class="col-sm-9">@Model.WorkDate.ToString("dd/MM/yyyy")</dd>
-    <dt class="col-sm-3">Giờ vào</dt><dd class="col-sm-9">@(Model.CheckIn?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa có")</dd>
-    <dt class="col-sm-3">Giờ ra</dt><dd class="col-sm-9">@(Model.CheckOut?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa check-out")</dd>
-    <dt class="col-sm-3">Tổng giờ làm</dt><dd class="col-sm-9">@(Model.CheckOut.HasValue ? Model.TotalHours.ToString("0.##") : "Chưa hoàn tất")</dd>
-    <dt class="col-sm-3">Chấm công</dt><dd class="col-sm-9"><partial name="_WorkStatus" model="Model.Status" /></dd>
+    <dt class="col-sm-3">Giờ yêu cầu check-in</dt><dd class="col-sm-9">@(Model.CheckIn?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa gửi")</dd>
+    <dt class="col-sm-3">Giờ yêu cầu check-out</dt><dd class="col-sm-9">@(Model.CheckOut?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Chưa gửi")</dd>
+    <dt class="col-sm-3">HR xác nhận</dt><dd class="col-sm-9"><partial name="_AttendanceApproval" model="Model" /></dd>
+    <dt class="col-sm-3">Tổng giờ đã xác nhận</dt><dd class="col-sm-9">@(completed ? Model.TotalHours.ToString("0.##") : "Chưa hoàn tất xác nhận")</dd>
+    <dt class="col-sm-3">Kết quả công</dt><dd class="col-sm-9">@if (completed) { <partial name="_WorkStatus" model="Model.Status" /> } else { <span>Chưa đủ điều kiện tính công</span> }</dd>
+    <dt class="col-sm-3">Người duyệt check-in</dt><dd class="col-sm-9">@(Model.CheckInReviewer?.FullName ?? "Chưa xử lý")</dd>
+    <dt class="col-sm-3">Thời điểm duyệt check-in</dt><dd class="col-sm-9">@(Model.CheckInReviewedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+    <dt class="col-sm-3">Ghi chú check-in</dt><dd class="col-sm-9 text-break">@(Model.CheckInReviewNote ?? "—")</dd>
+    <dt class="col-sm-3">Người duyệt check-out</dt><dd class="col-sm-9">@(Model.Reviewer?.FullName ?? "Chưa xử lý")</dd>
+    <dt class="col-sm-3">Thời điểm duyệt check-out</dt><dd class="col-sm-9">@(Model.ReviewedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+    <dt class="col-sm-3">Ghi chú check-out</dt><dd class="col-sm-9 text-break">@(Model.ReviewNote ?? "—")</dd>
     <dt class="col-sm-3">Ghi chú</dt><dd class="col-sm-9 text-break">@(Model.Note ?? "—")</dd>
-    <dt class="col-sm-3">Xác nhận của HR</dt><dd class="col-sm-9"><partial name="_AttendanceApproval" model="Model" /></dd>
-    <dt class="col-sm-3">Người xử lý</dt><dd class="col-sm-9">@(Model.Reviewer?.FullName ?? "Chưa xử lý")</dd>
-    <dt class="col-sm-3">Thời điểm xử lý</dt><dd class="col-sm-9">@(Model.ReviewedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
-    <dt class="col-sm-3">Ghi chú của HR</dt><dd class="col-sm-9 text-break">@(Model.ReviewNote ?? "—")</dd>
 </dl>
-@if ((User.IsInRole("HR") || User.IsInRole("Admin")) && Model.EmployeeID != (int?)ViewData["CurrentEmployeeID"]
-    && Model.ApprovalStatus == "Pending" && Model.CheckIn != null && Model.CheckOut > Model.CheckIn)
+@if ((User.IsInRole("HR") || User.IsInRole("Admin")) && Model.EmployeeID != (int?)ViewData["CurrentEmployeeID"] && stage != null)
 {
-    <form asp-action="Approve" asp-route-id="@Model.AttendanceID" method="post" class="mb-3">
+    <form asp-action="Approve" asp-route-id="@Model.AttendanceID" method="post" class="card card-body mb-3">
+        <h2 class="h5">Xử lý yêu cầu @stageName</h2>
+        <input type="hidden" name="Stage" value="@stage" />
         <input type="hidden" name="RowVersion" value="@Convert.ToBase64String(Model.RowVersion)" />
-        <div class="mb-3">
-            <label for="ReviewNote" class="form-label">Ghi chú xử lý (bắt buộc khi từ chối)</label>
-            <textarea id="ReviewNote" name="ReviewNote" maxlength="500" rows="3" class="form-control"></textarea>
-        </div>
-        <button type="submit" class="btn btn-success">Xác nhận chấm công</button>
-        <button type="submit" class="btn btn-outline-danger" asp-action="Reject" asp-route-id="@Model.AttendanceID">Từ chối</button>
+        <div class="mb-3"><label for="ReviewNote" class="form-label">Ghi chú (bắt buộc khi từ chối)</label><textarea id="ReviewNote" name="ReviewNote" maxlength="500" rows="3" class="form-control"></textarea></div>
+        <div class="d-flex gap-2"><button type="submit" class="btn btn-success">Xác nhận @stageName</button><button type="submit" class="btn btn-outline-danger" asp-action="Reject" asp-route-id="@Model.AttendanceID">Từ chối @stageName</button></div>
     </form>
 }
 <a asp-action="Index" class="btn btn-outline-secondary">Về danh sách</a>

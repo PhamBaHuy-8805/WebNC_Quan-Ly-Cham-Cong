@@ -33,6 +33,18 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Models
         [Required, StringLength(20)]
         public string ApprovalStatus { get; set; } = "Pending";
 
+        [Required, StringLength(20)]
+        public string CheckInApprovalStatus { get; set; } = "Pending";
+
+        [Required, StringLength(20)]
+        public string CheckOutApprovalStatus { get; set; } = "Pending";
+
+        public int? CheckInReviewedBy { get; set; }
+        public Employee? CheckInReviewer { get; set; }
+        public DateTime? CheckInReviewedAt { get; set; }
+        [StringLength(500)]
+        public string? CheckInReviewNote { get; set; }
+
         // ID nhân viên phê duyệt
         public int? ReviewedBy { get; set; }
 

@@ -25,7 +25,7 @@ static class IntegrationChecks
         {
             db.Accounts.AddRange(new Account { Username = "payroll.hr." + suffix, PasswordHash = password, EmployeeID = hr.EmployeeID, RoleID = roles["HR"].RoleID },
                 new Account { Username = "payroll.nv." + suffix, PasswordHash = password, EmployeeID = employee.EmployeeID, RoleID = roles["Employee"].RoleID });
-            db.Attendances.Add(new Attendance { EmployeeID = employee.EmployeeID, WorkDate = workday, CheckIn = workday.AddHours(8), CheckOut = workday.AddHours(17), TotalHours = 8, ApprovalStatus = "Approved", Status = "Present" });
+            db.Attendances.Add(new Attendance { EmployeeID = employee.EmployeeID, WorkDate = workday, CheckIn = workday.AddHours(8), CheckOut = workday.AddHours(17), TotalHours = 8, ApprovalStatus = "Approved", CheckInApprovalStatus = "Approved", CheckOutApprovalStatus = "Approved", Status = "Present" });
             await db.SaveChangesAsync();
             var payroll = new Payroll { EmployeeID = employee.EmployeeID, Month = (byte)period.Month, Year = (short)period.Year };
             var service = new PayrollService(db, TimeProvider.System);
@@ -93,6 +93,7 @@ static class IntegrationChecks
             var paidSnapshot = frozen.TotalSalary;
             var recalc = await Post(hrClient, "Adjust", payroll.PayrollID, Convert.ToBase64String(frozen.RowVersion));
             Check((await Reload()).TotalSalary == paidSnapshot && (await Reload()).Status == "Paid", "Paid payroll was recalculated");
+            checks += await AttendanceChecks.Run(db, hrClient, employeeClient, employee.EmployeeID, hr.EmployeeID, workday);
             Console.WriteLine($"PASS: {checks} SQL/HTTP integration checks (fixtures removed afterwards).");
         }
         finally
@@ -101,6 +102,7 @@ static class IntegrationChecks
             var ids = fixtures.Select(e => e.EmployeeID).ToArray();
             await db.Accounts.Where(a => a.EmployeeID.HasValue && ids.Contains(a.EmployeeID.Value)).ExecuteDeleteAsync();
             await db.Payrolls.Where(p => ids.Contains(p.EmployeeID)).ExecuteDeleteAsync();
+            await db.OverTimes.Where(o => ids.Contains(o.EmployeeID)).ExecuteDeleteAsync();
             await db.Attendances.Where(a => ids.Contains(a.EmployeeID)).ExecuteDeleteAsync();
             await db.Employees.Where(e => ids.Contains(e.EmployeeID)).ExecuteDeleteAsync();
         }

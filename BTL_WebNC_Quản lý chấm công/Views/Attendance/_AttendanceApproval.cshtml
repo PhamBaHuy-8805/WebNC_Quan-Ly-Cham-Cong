@@ -1,6 +1,16 @@
 @model Attendance
-@{
-    var label = Model.ApprovalStatus switch { "Approved" => "Đã xác nhận", "Rejected" => "Từ chối", _ => Model.CheckOut == null ? "Chưa đủ giờ vào/ra" : "Chờ HR xác nhận" };
-    var color = Model.ApprovalStatus switch { "Approved" => "success", "Rejected" => "danger", _ => "secondary" };
+@functions {
+    private static string Label(string status) => status switch { "Approved" => "Đã xác nhận", "Rejected" => "Từ chối", _ => "Chờ HR xác nhận" };
+    private static string Color(string status) => status switch { "Approved" => "success", "Rejected" => "danger", _ => "warning" };
 }
-<span class="badge bg-@color">@label</span>
+<div class="d-flex flex-column align-items-start gap-1">
+    <span class="badge bg-@Color(Model.CheckInApprovalStatus)">Check-in: @Label(Model.CheckInApprovalStatus)</span>
+    @if (Model.CheckOut.HasValue)
+    {
+        <span class="badge bg-@Color(Model.CheckOutApprovalStatus)">Check-out: @Label(Model.CheckOutApprovalStatus)</span>
+    }
+    else
+    {
+        <span class="badge bg-secondary">Check-out: Chưa gửi</span>
+    }
+</div>

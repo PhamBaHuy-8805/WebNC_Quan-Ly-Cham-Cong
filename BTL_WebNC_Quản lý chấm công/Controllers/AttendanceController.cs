@@ -102,7 +102,7 @@ public class AttendanceController(ApplicationDbContext context, TimeProvider clo
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
-        var record = await VisibleRecords().AsNoTracking().Include(a => a.Employee).Include(a => a.Reviewer)
+        var record = await VisibleRecords().AsNoTracking().Include(a => a.Employee).Include(a => a.Reviewer).Include(a => a.CheckInReviewer)
             .SingleOrDefaultAsync(a => a.AttendanceID == id);
         return record == null ? NotFound() : View(record);
     }
@@ -124,7 +124,7 @@ public class AttendanceController(ApplicationDbContext context, TimeProvider clo
         {
             return BackWithError("Check-in đã được ghi nhận ở một yêu cầu khác. Vui lòng tải lại trang.");
         }
-        TempData["Success"] = $"Đã check-in lúc {now:HH:mm:ss}. Hãy check-out khi kết thúc làm việc để gửi HR phê duyệt.";
+        TempData["Success"] = $"Đã gửi yêu cầu check-in lúc {now:HH:mm:ss}. Chỉ được công nhận check-in sau khi HR xác nhận.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -136,18 +136,20 @@ public class AttendanceController(ApplicationDbContext context, TimeProvider clo
             .SingleOrDefaultAsync(a => a.EmployeeID == CurrentEmployeeId && a.WorkDate == now.Date);
         if (record?.CheckIn == null) return BackWithError("Bạn cần check-in trước khi check-out.");
         if (record.CheckOut != null) return BackWithError("Bạn đã check-out hôm nay.");
-        if (record.ApprovalStatus != "Pending") return BackWithError("Bản chấm công đã được HR xử lý.");
+        if (record.CheckInApprovalStatus != "Approved") return BackWithError("Check-in cần được HR xác nhận trước khi gửi yêu cầu check-out.");
         if (now <= record.CheckIn.Value) return BackWithError("Giờ ra phải sau giờ vào.");
 
         record.CheckOut = now;
-        record.TotalHours = AttendanceRules.CalculateHours(record.CheckIn.Value, now);
+        record.TotalHours = 0;
+        record.CheckOutApprovalStatus = "Pending";
+        record.ApprovalStatus = "Pending";
         record.Status = AttendanceRules.WorkStatus(record.CheckIn.Value, now);
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException)
         {
             return BackWithError("Bản chấm công vừa được cập nhật. Vui lòng tải lại trang.");
         }
-        TempData["Success"] = "Đã check-out. Bản chấm công đang chờ HR xác nhận.";
+        TempData["Success"] = "Đã gửi yêu cầu check-out. Chỉ được công nhận giờ ra và tính công sau khi HR xác nhận.";
         return RedirectToAction(nameof(Details), new { id = record.AttendanceID });
     }
 
@@ -163,7 +165,7 @@ public class AttendanceController(ApplicationDbContext context, TimeProvider clo
             ModelState.AddModelError(nameof(model.ReviewNote), "Vui lòng nhập lý do từ chối.");
         if (!ModelState.IsValid)
         {
-            TempData["Error"] = "Kiểm tra lại biểu mẫu. Lý do từ chối là bắt buộc; ghi chú tối đa 500 ký tự.";
+            TempData["Error"] = "Kiểm tra bước xác nhận và biểu mẫu. Lý do từ chối là bắt buộc; ghi chú tối đa 500 ký tự.";
             return RedirectToAction(nameof(Details), new { id });
         }
         byte[] originalVersion;
@@ -174,21 +176,40 @@ public class AttendanceController(ApplicationDbContext context, TimeProvider clo
         var record = await Context.Attendances.SingleOrDefaultAsync(a => a.AttendanceID == id);
         if (record == null) return NotFound();
         if (record.EmployeeID == CurrentEmployeeId) return Forbid();
-        if (record.CheckIn == null || record.CheckOut == null || record.CheckOut <= record.CheckIn)
-            return BackWithError("Chỉ xử lý bản chấm công có đầy đủ giờ vào và giờ ra hợp lệ.");
-        if (record.ApprovalStatus != "Pending") return BackWithError("Bản chấm công này đã được xử lý.");
-
+        if (record.CheckIn == null || record.CheckIn.Value.Date != record.WorkDate.Date)
+            return BackWithError("Yêu cầu check-in không hợp lệ.");
+        if (model.Stage == "CheckIn")
+        {
+            if (record.CheckInApprovalStatus != "Pending") return BackWithError("Yêu cầu check-in đã được xử lý.");
+            record.CheckInApprovalStatus = decision;
+            record.CheckInReviewedBy = CurrentEmployeeId;
+            record.CheckInReviewedAt = AttendanceRules.LocalNow(clock);
+            record.CheckInReviewNote = model.ReviewNote?.Trim();
+            record.ApprovalStatus = decision == "Rejected" ? "Rejected" : "Pending";
+            record.TotalHours = 0;
+        }
+        else
+        {
+            if (record.CheckInApprovalStatus != "Approved") return BackWithError("Cần xác nhận check-in trước khi xử lý check-out.");
+            if (record.CheckOut == null || record.CheckOut <= record.CheckIn || record.CheckOut.Value.Date != record.WorkDate.Date)
+                return BackWithError("Yêu cầu check-out phải có giờ ra hợp lệ trong cùng ngày.");
+            if (record.CheckOutApprovalStatus != "Pending") return BackWithError("Yêu cầu check-out đã được xử lý.");
+            record.CheckOutApprovalStatus = decision;
+            record.ReviewedBy = CurrentEmployeeId;
+            record.ReviewedAt = AttendanceRules.LocalNow(clock);
+            record.ReviewNote = model.ReviewNote?.Trim();
+            record.ApprovalStatus = decision;
+            record.TotalHours = decision == "Approved" ? AttendanceRules.CalculateHours(record.CheckIn.Value, record.CheckOut.Value) : 0;
+        }
         Context.Entry(record).Property(a => a.RowVersion).OriginalValue = originalVersion;
-        record.ApprovalStatus = decision;
-        record.ReviewedBy = CurrentEmployeeId;
-        record.ReviewedAt = AttendanceRules.LocalNow(clock);
-        record.ReviewNote = model.ReviewNote?.Trim();
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException)
         {
             return BackWithError("Dữ liệu đã thay đổi sau khi bạn mở trang. Vui lòng kiểm tra lại trước khi xác nhận.");
         }
-        TempData["Success"] = decision == "Approved" ? "Đã xác nhận chấm công." : "Đã từ chối chấm công.";
+        ReportService.Invalidate();
+        var stageName = model.Stage == "CheckIn" ? "check-in" : "check-out";
+        TempData["Success"] = decision == "Approved" ? $"Đã xác nhận {stageName}." : $"Đã từ chối {stageName}.";
         return RedirectToAction(nameof(Details), new { id });
     }
 
