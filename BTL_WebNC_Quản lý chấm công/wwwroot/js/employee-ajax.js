@@ -31,46 +31,109 @@
         btn.addEventListener('click', () => loadPage(page));
         return btn;
     }
-    function render(result) {
-        const body = $id('empRows');
-        body.replaceChildren();
-        const items = result.items || [];
-        if (items.length === 0) {
-            const tr = document.createElement('tr');
-            const td = makeCell(tr, 'Không tìm thấy nhân viên phù hợp.');
-            td.colSpan = 10;
-            body.appendChild(tr);
-        }
-        for (const e of items) {
-            const tr = document.createElement('tr');
-            makeCell(tr, e.employeeID);
-            makeCell(tr, e.employeeCode);
-            makeCell(tr, e.fullName);
-            makeCell(tr, e.departmentName);
-            makeCell(tr, e.positionName);
-            makeCell(tr, e.email);
-            makeCell(tr, (e.hireDate || '').slice(0, 10));
-            makeCell(tr, money.format(e.salary ?? 0));
-            makeCell(tr, e.status === 'Active' ? 'Đang làm' : 'Ngừng làm');
-            const actions = makeCell(tr, '');
-            const del = document.createElement('button');
-            del.type = 'button';
-            del.className = 'btn btn-sm btn-outline-danger';
-            del.textContent = 'Xóa';
-            del.addEventListener('click', () => deleteEmployee(e.employeeID, e.fullName));
-            actions.appendChild(del);
-            body.appendChild(tr);
-        }
-        currentPage = result.page;
-        $id('empCount').textContent = `Tổng số: ${result.totalItems} nhân viên`;
-        const pager = $id('empPager');
-        pager.replaceChildren();
-        pager.appendChild(makeButton('« Trước', currentPage - 1, currentPage <= 1));
-        const position = document.createElement('span');
-        position.textContent = `Trang ${currentPage}/${result.totalPages}`;
-        pager.appendChild(position);
-        pager.appendChild(makeButton('Sau »', currentPage + 1, currentPage >= result.totalPages));
+    
+function render(result) {
+    const body = $id('empRows');
+    body.replaceChildren();
+
+    const items = result.items || [];
+
+    if (items.length === 0) {
+        const tr = document.createElement('tr');
+        const td = makeCell(
+            tr,
+            'Không tìm thấy nhân viên phù hợp.'
+        );
+
+        td.colSpan = 11;
+        body.appendChild(tr);
     }
+
+    for (const e of items) {
+        const tr = document.createElement('tr');
+
+        makeCell(tr, e.employeeID);
+        makeCell(tr, e.employeeCode);
+        makeCell(tr, e.fullName);
+        makeCell(tr, e.departmentName);
+        makeCell(tr, e.positionName);
+        makeCell(tr, e.email);
+        makeCell(tr, (e.hireDate || '').slice(0, 10));
+        makeCell(tr, money.format(e.salary ?? 0));
+        makeCell(
+            tr,
+            e.status === 'Active'
+                ? 'Đang làm'
+                : 'Ngừng làm'
+        );
+
+        // NÚT CHỈNH SỬA
+        const editCell = makeCell(tr, '');
+
+        const edit = document.createElement('a');
+
+        edit.href =
+            `/Employees/Edit/${encodeURIComponent(e.employeeID)}`;
+
+        edit.className =
+            'btn btn-sm btn-outline-primary';
+
+        edit.textContent = 'Chỉnh sửa';
+
+        editCell.appendChild(edit);
+
+        // NÚT XÓA
+        const actions = makeCell(tr, '');
+
+        const del = document.createElement('button');
+        del.type = 'button';
+
+        del.className =
+            'btn btn-sm btn-outline-danger';
+
+        del.textContent = 'Xóa';
+
+        del.addEventListener('click', () => {
+            deleteEmployee(e.employeeID, e.fullName);
+        });
+
+        actions.appendChild(del);
+
+        body.appendChild(tr);
+    }
+
+    currentPage = result.page;
+
+    $id('empCount').textContent =
+        `Tổng số: ${result.totalItems} nhân viên`;
+
+    const pager = $id('empPager');
+    pager.replaceChildren();
+
+    pager.appendChild(
+        makeButton(
+            '« Trước',
+            currentPage - 1,
+            currentPage <= 1
+        )
+    );
+
+    const position = document.createElement('span');
+
+    position.textContent =
+        `Trang ${currentPage}/${result.totalPages}`;
+
+    pager.appendChild(position);
+
+    pager.appendChild(
+        makeButton(
+            'Sau »',
+            currentPage + 1,
+            currentPage >= result.totalPages
+        )
+    );
+}
+
 
     // 1. Hiển thị và phân trang bằng XMLHttpRequest (không reload).
     function loadEmployeesXHR(page) {

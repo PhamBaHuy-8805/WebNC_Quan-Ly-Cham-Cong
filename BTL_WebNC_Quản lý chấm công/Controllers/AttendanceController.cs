@@ -1,23 +1,78 @@
+using System.Globalization;
+using System.Security.Claims;
 using BTL_WebNC_Quản_lý_chấm_công.Data;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
 using BTL_WebNC_Quản_lý_chấm_công.Services;
 using BTL_WebNC_Quản_lý_chấm_công.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace BTL_WebNC_Quản_lý_chấm_công.Controllers;
 
+// Bảo vệ cả Index/Details; các action POST vẫn giữ phân quyền cụ thể.
+[Authorize]
 public class AttendanceController(ApplicationDbContext context, TimeProvider clock) : RequestControllerBase(context)
 {
     private IQueryable<Attendance> VisibleRecords() => IsReviewer
         ? Context.Attendances
         : Context.Attendances.Where(a => a.EmployeeID == CurrentEmployeeId);
 
+    // Bài thực hành buổi 7: Cookies lưu ở trình duyệt; Session lưu ở server.
+    private async Task RecordVisitAsync()
+    {
+        var nowUtc = clock.GetUtcNow();
+
+        // 1. Persistent Cookie: số lượt truy cập trang (theo trình duyệt).
+        var oldCount = 0;
+        int.TryParse(Request.Cookies["Attendance.VisitCount"], out oldCount);
+        var visits = oldCount < 0 ? 1 : oldCount == int.MaxValue ? int.MaxValue : oldCount + 1;
+
+        var oldVisit = Request.Cookies["Attendance.LastVisitUtc"];
+        var previousVisit = DateTimeOffset.TryParse(
+            oldVisit,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.RoundtripKind,
+            out var previousTime)
+            ? previousTime.ToOffset(TimeSpan.FromHours(7)).ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.InvariantCulture)
+            : "Lần đầu truy cập";
+
+        var cookieOptions = new CookieOptions
+        {
+            Expires = nowUtc.AddDays(30),
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Path = "/"
+        };
+        Response.Cookies.Append("Attendance.VisitCount", visits.ToString(CultureInfo.InvariantCulture), cookieOptions);
+        Response.Cookies.Append("Attendance.LastVisitUtc", nowUtc.ToString("O", CultureInfo.InvariantCulture), cookieOptions);
+
+        // 2. Server Session: lượt truy cập trong phiên và dữ liệu hiển thị.
+        await HttpContext.Session.LoadAsync();
+        var oldSessionViews = HttpContext.Session.GetInt32("Attendance.SessionViews") ?? 0;
+        var sessionViews = oldSessionViews == int.MaxValue ? int.MaxValue : oldSessionViews + 1;
+        HttpContext.Session.SetInt32("Attendance.SessionViews", sessionViews);
+        HttpContext.Session.SetString("Attendance.LastFeature", "Xem danh sách chấm công");
+        HttpContext.Session.SetString("Attendance.UserName", User.Identity?.Name ?? "");
+        HttpContext.Session.SetString("Attendance.Role", string.Join(", ", User.FindAll(ClaimTypes.Role).Select(r => r.Value)));
+
+        // Chỉ dùng ViewBag/Session để hiển thị, không dùng để quyết định phân quyền.
+        ViewBag.CookieVisitCount = visits;
+        ViewBag.CookiePreviousVisit = previousVisit;
+        ViewBag.SessionViews = sessionViews;
+        ViewBag.SessionUserName = HttpContext.Session.GetString("Attendance.UserName");
+        ViewBag.SessionRole = HttpContext.Session.GetString("Attendance.Role");
+        ViewBag.SessionLastFeature = HttpContext.Session.GetString("Attendance.LastFeature");
+    }
+
     [HttpGet]
     public async Task<IActionResult> Index(string? search, string? approvalStatus, DateTime? date, int page = 1)
     {
+        await RecordVisitAsync(); // Chỉ bổ sung dòng này; nghiệp vụ cũ giữ nguyên.
+
         var today = AttendanceRules.LocalNow(clock).Date;
         var query = VisibleRecords().AsNoTracking();
         search = search?.Trim();

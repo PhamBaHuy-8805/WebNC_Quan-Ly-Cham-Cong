@@ -6,10 +6,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace BTL_WebNC_Quản_lý_chấm_công.Controllers;
 
-public class AccountController(ApplicationDbContext context) : Controller
+public class AccountController(ApplicationDbContext context, UserManager<Account> userManager) : Controller
 {
     [HttpGet]
     public IActionResult Login(string? returnUrl = null) => View(new LoginViewModel { ReturnUrl = returnUrl });
@@ -20,9 +21,9 @@ public class AccountController(ApplicationDbContext context) : Controller
         if (!ModelState.IsValid) return View(model);
         var account = await context.Accounts.Include(a => a.Role).Include(a => a.Employee)
             .SingleOrDefaultAsync(a => a.Username == model.Username.Trim());
-        // Bản thực hành dùng mật khẩu thường theo yêu cầu; giữ tên cột cũ để tương thích DB.
         var valid = account is { Status: "Active", Role: not null, Employee: { Status: "Active" } }
-            && string.Equals(account.PasswordHash, model.Password, StringComparison.Ordinal);
+            && await userManager.CheckPasswordAsync(account, model.Password);
+
         if (!valid)
         {
             ModelState.AddModelError(string.Empty, "Tài khoản hoặc mật khẩu không hợp lệ, hoặc hồ sơ đã ngừng hoạt động.");
@@ -38,13 +39,20 @@ public class AccountController(ApplicationDbContext context) : Controller
         };
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)));
-        return Url.IsLocalUrl(model.ReturnUrl) ? LocalRedirect(model.ReturnUrl!) : RedirectToAction("Index", "/ajax/employees");
-    }
+        // Lưu thông tin người dùng trong Session
+        HttpContext.Session.SetString("LoginUser", account.Username);
+        HttpContext.Session.SetString("LoginRole", account.Role!.RoleName);
+        HttpContext.Session.SetInt32("EmployeeID", account.EmployeeID!.Value);
+        return Url.IsLocalUrl(model.ReturnUrl)
+            ? LocalRedirect(model.ReturnUrl!)
+            : Redirect("/Employees");   
+         }
 
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync();
+        HttpContext.Session.Clear();
         return RedirectToAction(nameof(Login));
     }
 
