@@ -1,0 +1,62 @@
+@using BTL_WebNC_Quản_lý_chấm_công.Services
+@model Payroll
+@{
+    ViewData["Title"] = "Chi tiết bảng lương";
+    var details = PayrollCalculator.Details(Model);
+    var reviewer = User.IsInRole("HR") || User.IsInRole("Admin");
+    var otherEmployee = Model.EmployeeID != (int?)ViewData["CurrentEmployeeID"];
+}
+<h1>Phiếu lương @Model.Month/@Model.Year</h1>
+<p>@Model.Employee?.EmployeeCode — @Model.Employee?.FullName</p>
+<dl class="row">
+    <dt class="col-sm-4">Trạng thái</dt><dd class="col-sm-8">@(Model.Status switch { "Draft" => "Nháp", "Approved" => "Đã duyệt", "Paid" => "Đã thanh toán", _ => Model.Status })</dd>
+    <dt class="col-sm-4">Lương cơ bản của kỳ</dt><dd class="col-sm-8">@Model.BaseSalary.ToString("N0") VNĐ</dd>
+    <dt class="col-sm-4">Ngày chuẩn / giờ chuẩn mỗi ngày</dt><dd class="col-sm-8">@Model.StandardDays / 7 giờ</dd>
+    <dt class="col-sm-4">Ngày công quy đổi / giờ hưởng lương</dt><dd class="col-sm-8">@Model.WorkingDays.ToString("0.##") / @Model.WorkingHours.ToString("0.##") giờ (bao gồm nghỉ có lương)</dd>
+    <dt class="col-sm-4">Tăng ca</dt><dd class="col-sm-8">@Model.OvertimeHours.ToString("0.##") giờ × hệ số @Model.OvertimeMultiplier.ToString("0.##") = @Model.OvertimePay.ToString("N0") VNĐ</dd>
+    <dt class="col-sm-4">Phụ cấp</dt><dd class="col-sm-8">@Model.Allowance.ToString("N0") VNĐ</dd>
+    <dt class="col-sm-4">Trừ thời gian không hưởng lương</dt><dd class="col-sm-8">@Model.Deduction.ToString("N0") VNĐ</dd>
+    <dt class="col-sm-4">Tổng lương</dt><dd class="col-sm-8"><strong>@Model.TotalSalary.ToString("N0") VNĐ</strong></dd>
+    <dt class="col-sm-4">Tính lần cuối</dt><dd class="col-sm-8">@(Model.CalculatedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Dữ liệu mẫu chưa tính lại")</dd>
+    <dt class="col-sm-4">Duyệt / thanh toán</dt><dd class="col-sm-8">@(Model.ApprovedAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "—") / @(Model.PaidAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "—")</dd>
+</dl>
+<p class="text-muted">Tổng lương = lương cơ bản − tiền thiếu công + tiền tăng ca + phụ cấp. Ngày nghỉ tuần/ngày lễ theo cấu hình; giờ ngoài ca chỉ được trả tăng ca khi có đơn đã duyệt và chấm công thực tế.</p>
+@if (details.Any(d => d.NeedsReview))
+{
+    <p class="alert alert-warning">Còn dữ liệu cần xử lý ở các dòng tô vàng. Hoàn tất đối soát rồi tính lại trước khi duyệt.</p>
+}
+<div class="table-responsive"><table class="table table-bordered">
+    <thead><tr><th>Ngày</th><th>Kết quả đối soát</th><th>Giờ hưởng lương</th><th>Giờ tăng ca</th></tr></thead>
+    <tbody>
+    @foreach (var day in details)
+    {
+        <tr class="@(day.NeedsReview ? "table-warning" : "")"><td>@day.Date.ToString("dd/MM/yyyy")</td><td>@day.Description</td><td>@day.PaidHours.ToString("0.##")</td><td>@day.OvertimeHours.ToString("0.##")</td></tr>
+    }
+    </tbody>
+</table></div>
+@if (reviewer && Model.Status == "Draft")
+{
+    <form asp-action="Recalculate" asp-route-id="@Model.PayrollID" method="post" class="mb-3">
+        <input type="hidden" name="RowVersion" value="@Convert.ToBase64String(Model.RowVersion)" />
+        <label for="Allowance" class="form-label">Phụ cấp (VNĐ)</label>
+        <input id="Allowance" name="Allowance" type="number" step="0.01" min="0" max="1000000000" value="@Model.Allowance.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)" class="form-control mb-2" required />
+        <button class="btn btn-primary">Lưu phụ cấp và tính lại</button>
+    </form>
+    @if (otherEmployee)
+    {
+        <form asp-action="Approve" asp-route-id="@Model.PayrollID" method="post" class="mb-3">
+            <input type="hidden" name="RowVersion" value="@Convert.ToBase64String(Model.RowVersion)" />
+            <div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="ConfirmAbsences" value="true" id="confirm" required /><label for="confirm" class="form-check-label">Tôi đã đối soát các ngày không chấm công, xác nhận vắng không hưởng lương và kiểm tra các khoản lương.</label></div>
+            <button class="btn btn-success" disabled="@(details.Any(d => d.NeedsReview))">Duyệt và khóa bảng lương</button>
+        </form>
+    }
+}
+@if (reviewer && otherEmployee && Model.Status == "Approved")
+{
+    <form asp-action="MarkPaid" asp-route-id="@Model.PayrollID" method="post" class="mb-3">
+        <input type="hidden" name="RowVersion" value="@Convert.ToBase64String(Model.RowVersion)" />
+        <p>Chỉ ghi nhận sau khi đã thanh toán thực tế. Nút này không chuyển tiền.</p>
+        <button class="btn btn-success">Xác nhận đã thanh toán</button>
+    </form>
+}
+<a asp-action="Index" asp-route-month="@Model.Month" asp-route-year="@Model.Year" class="btn btn-outline-secondary">Về bảng lương</a>

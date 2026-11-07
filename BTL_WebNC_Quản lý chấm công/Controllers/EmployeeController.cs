@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using BTL_WebNC_Quản_lý_chấm_công.Data;
@@ -6,6 +7,7 @@ using BTL_WebNC_Quản_lý_chấm_công.Models;
 
 namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
 {
+    [Authorize(Roles = "HR,Admin")]
     public class EmployeeController : Controller
     {
         private readonly ApplicationDbContext _context;

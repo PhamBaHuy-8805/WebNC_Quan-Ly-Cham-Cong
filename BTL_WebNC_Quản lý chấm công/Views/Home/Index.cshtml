@@ -1,8 +1,38 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@model HomeVisitViewModel
+@{
+    ViewData["Title"] = "Trang chủ";
+    var vietnamOffset = TimeSpan.FromHours(7);
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<h1>Quản lý chấm công</h1>
+<p class="text-muted">Theo dõi chấm công, nghỉ phép và tăng ca của bạn.</p>
+
+<section class="card mb-4" aria-labelledby="visit-heading">
+    <div class="card-body">
+        <h2 id="visit-heading" class="h5">Lịch sử truy cập trên trình duyệt này</h2>
+        <dl class="row mb-0">
+            <dt class="col-sm-5">Số lần truy cập trang chủ</dt>
+            <dd class="col-sm-7">@Model.VisitCount</dd>
+            <dt class="col-sm-5">Lần truy cập trước (giờ Việt Nam)</dt>
+            <dd class="col-sm-7">
+                @if (Model.PreviousVisit is DateTimeOffset previousVisit)
+                {
+                    <time datetime="@previousVisit.ToString("O")">@previousVisit.ToOffset(vietnamOffset).ToString("dd/MM/yyyy HH:mm:ss")</time>
+                }
+                else
+                {
+                    <span>Chưa có lịch sử truy cập trước đó.</span>
+                }
+            </dd>
+            <dt class="col-sm-5">Lần truy cập hiện tại (giờ Việt Nam)</dt>
+            <dd class="col-sm-7"><time datetime="@Model.CurrentVisit.ToString("O")">@Model.CurrentVisit.ToOffset(vietnamOffset).ToString("dd/MM/yyyy HH:mm:ss")</time></dd>
+        </dl>
+        <p class="text-muted mb-0">Mỗi lần mở hoặc tải lại trang chủ được tính là một lượt. Lịch sử được lưu bằng cookie trong 30 ngày kể từ lần truy cập gần nhất, kể cả khi đóng rồi mở lại trình duyệt. Xóa cookie hoặc dùng trình duyệt khác sẽ bắt đầu lịch sử mới.</p>
+    </div>
+</section>
+
+<div class="d-flex flex-wrap gap-2">
+    <a asp-controller="Attendance" asp-action="Index" class="btn btn-primary">Chấm công</a>
+    <a asp-controller="Leave" asp-action="Index" class="btn btn-outline-primary">Nghỉ phép</a>
+    <a asp-controller="Overtime" asp-action="Index" class="btn btn-outline-primary">Tăng ca</a>
 </div>

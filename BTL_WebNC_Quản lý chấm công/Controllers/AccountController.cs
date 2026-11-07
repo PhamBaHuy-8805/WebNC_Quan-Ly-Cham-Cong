@@ -4,6 +4,7 @@ using BTL_WebNC_Quản_lý_chấm_công.Models;
 using BTL_WebNC_Quản_lý_chấm_công.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,10 +12,10 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers;
 
 public class AccountController(ApplicationDbContext context) : Controller
 {
-    [HttpGet]
+    [HttpGet, AllowAnonymous]
     public IActionResult Login(string? returnUrl = null) => View(new LoginViewModel { ReturnUrl = returnUrl });
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost, ValidateAntiForgeryToken, AllowAnonymous]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -22,6 +23,7 @@ public class AccountController(ApplicationDbContext context) : Controller
             .SingleOrDefaultAsync(a => a.Username == model.Username.Trim());
         // Bản thực hành dùng mật khẩu thường theo yêu cầu; giữ tên cột cũ để tương thích DB.
         var valid = account is { Status: "Active", Role: not null, Employee: { Status: "Active" } }
+            && account.Role.RoleName is "Employee" or "HR" or "Admin"
             && string.Equals(account.PasswordHash, model.Password, StringComparison.Ordinal);
         if (!valid)
         {
@@ -37,17 +39,23 @@ public class AccountController(ApplicationDbContext context) : Controller
             new Claim("EmployeeID", account.EmployeeID!.Value.ToString())
         };
         await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)));
+            new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+            new AuthenticationProperties
+            {
+                IsPersistent = false,
+                AllowRefresh = false
+            });
         return Url.IsLocalUrl(model.ReturnUrl) ? LocalRedirect(model.ReturnUrl!) : RedirectToAction("Index", "Attendance");
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    [HttpPost, ValidateAntiForgeryToken, Authorize]
     public async Task<IActionResult> Logout()
     {
         await HttpContext.SignOutAsync();
         return RedirectToAction(nameof(Login));
     }
 
+    [AllowAnonymous]
     public IActionResult AccessDenied()
     {
         Response.StatusCode = StatusCodes.Status403Forbidden;

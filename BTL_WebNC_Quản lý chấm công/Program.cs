@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using BTL_WebNC_Quản_lý_chấm_công.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using BTL_WebNC_Quản_lý_chấm_công.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,13 +13,21 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromHours(2);
+        options.SlidingExpiration = false;
+        options.Cookie.Name = "Attendance.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.EventsType = typeof(AccountCookieEvents);
     });
+builder.Services.AddScoped<AccountCookieEvents>();
 builder.Services.AddAuthorization();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.Configure<PayrollOptions>(builder.Configuration.GetSection("Payroll"));
+builder.Services.AddScoped<PayrollCalculator>();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 // Bổ sung dòng này để khởi tạo biến app
 var app = builder.Build();
@@ -59,3 +68,4 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+

@@ -1,11 +1,15 @@
 @model RequestListViewModel<Leave>
 @{ ViewData["Title"] = "Đơn nghỉ phép"; }
+<div id="request-app" data-list-url="@Url.Action("Index")" data-delete-url="@Url.Action("Delete")"
+     data-details-url="@Url.Action("Details")" data-edit-url="@Url.Action("Edit")"
+     data-approve-url="@Url.Action("Approve")" data-reject-url="@Url.Action("Reject")" data-page="@Model.Page">
+<div id="request-message" role="alert" hidden></div>
 <h1>@ViewData["Title"]</h1>
 @if (User.IsInRole("Employee"))
 {
-    <p><a asp-action="Create" class="btn btn-primary">Tạo yêu cầu</a></p>
+    <p><button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#request-modal">Tạo yêu cầu</button></p>
 }
-<form asp-action="Index" method="get" class="row g-2 mb-3">
+<form id="request-search" asp-action="Index" method="get" class="row g-2 mb-3">
     <div class="col-md-5"><label asp-for="Search" class="form-label">Mã, tên nhân viên hoặc lý do</label><input asp-for="Search" class="form-control" /></div>
     <div class="col-md-3"><label asp-for="Status" class="form-label">Trạng thái</label>
         <select asp-for="Status" class="form-select"><option value="">Tất cả</option><option value="Pending">Chờ duyệt</option><option value="Approved">Đã duyệt</option><option value="Rejected">Từ chối</option></select>
@@ -15,36 +19,37 @@
     </div>
     <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary" type="submit">Lọc</button></div>
 </form>
-<p>@Model.TotalCount yêu cầu · Trang @Model.Page / @Model.TotalPages</p>
+<p id="request-summary" role="status" aria-live="polite"></p>
 <div class="table-responsive"><table class="table table-striped align-middle">
-<thead><tr><th>Nhân viên</th><th>Thời gian nghỉ</th><th>Trạng thái</th><th>Người xử lý</th><th>Thao tác</th></tr></thead>
-<tbody>
-@if (Model.Items.Count == 0) { <tr><td colspan="5" class="text-center">Không có yêu cầu phù hợp.</td></tr> }
-@foreach (var item in Model.Items)
+    <thead><tr><th>Nhân viên</th><th>Thời gian</th><th>Trạng thái</th><th>Người xử lý</th><th>Thao tác</th></tr></thead>
+    <tbody id="request-rows"></tbody>
+</table></div>
+<nav aria-label="Phân trang"><div id="request-pages" class="d-flex gap-2 flex-wrap"></div></nav>
+<div id="request-token">@Html.AntiForgeryToken()</div>
+<noscript><p class="alert alert-warning">Vui lòng bật JavaScript để sử dụng danh sách đơn.</p></noscript>
+@if (User.IsInRole("Employee"))
 {
-    <tr>
-        <td>@item.Employee?.EmployeeCode<br />@item.Employee?.FullName</td>
-        <td>@item.StartDate.ToString("dd/MM/yyyy") – @item.EndDate.ToString("dd/MM/yyyy")</td>
-        
-        <td><partial name="_RequestStatus" model="item.Status" /></td>
-        <td>@(item.Approver?.FullName ?? "Chưa xử lý")</td>
-        <td><a asp-action="Details" asp-route-id="@item.LeaveID">Chi tiết</a>
-        @if (User.IsInRole("Employee") && item.Status == "Pending")
-        {
-            <span> · </span><a asp-action="Edit" asp-route-id="@item.LeaveID">Sửa</a>
-            <span> · </span><a asp-action="Delete" asp-route-id="@item.LeaveID">Xóa</a>
-        }
-        </td>
-    </tr>
+    <div class="modal fade" id="request-modal" tabindex="-1" aria-labelledby="request-modal-title" aria-hidden="true">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="request-modal-title">Tạo yêu cầu</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <form id="request-create" asp-action="Create" method="post">
+                <div class="modal-body">
+                    <div id="request-errors" class="alert alert-danger" role="alert" hidden></div>
+                    <partial name="_Form" model="new LeaveCreateViewModel()" />
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                </div>
+            </form>
+        </div></div>
+    </div>
 }
-</tbody></table></div>
-<nav aria-label="Phân trang">
-@if (Model.Page > 1)
-{
-    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-sort="@Model.Sort">Trang trước</a>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/requests.js" asp-append-version="true"></script>
 }
-@if (Model.Page < Model.TotalPages)
-{
-    <a class="btn btn-outline-secondary" asp-action="Index" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-status="@Model.Status" asp-route-sort="@Model.Sort">Trang sau</a>
-}
-</nav>

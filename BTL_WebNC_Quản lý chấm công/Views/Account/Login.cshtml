@@ -1,6 +1,7 @@
 @model LoginViewModel
 @{ ViewData["Title"] = "Đăng nhập"; }
 <h1>Đăng nhập</h1>
+<p class="text-muted">Phiên đăng nhập có thời hạn tối đa 2 giờ. Hãy đăng xuất khi kết thúc làm việc.</p>
 <div class="row"><div class="col-md-5">
 <form asp-action="Login" method="post">
     <input asp-for="ReturnUrl" type="hidden" />

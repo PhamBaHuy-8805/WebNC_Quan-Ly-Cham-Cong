@@ -14,7 +14,7 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         IsReviewer ? Context.OverTimes : Context.OverTimes.Where(x => x.EmployeeID == CurrentEmployeeId);
 
     [HttpGet]
-    public async Task<IActionResult> Index(string? search, string? status, string sort = "date_desc", int page = 1)
+    public async Task<IActionResult> Index(string? search, string? status, string sort = "date_desc", int page = 1, bool json = false)
     {
         var query = VisibleRequests().AsNoTracking();
         search = search?.Trim();
@@ -37,6 +37,21 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         };
         var items = await ordered.Include(x => x.Employee).Include(x => x.Approver)
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        if (json)
+            return Json(new
+            {
+                items = items.Select(x => new
+                {
+                    id = x.OvertimeID,
+                    employee = (x.Employee?.EmployeeCode ?? "") + " · " + (x.Employee?.FullName ?? ""),
+                    period = x.WorkDate.ToString("dd/MM/yyyy") + " · " + x.TotalHours.ToString("0.##") + " giờ",
+                    status = x.Status,
+                    approver = x.Approver?.FullName ?? "Chưa xử lý",
+                    canEdit = User.IsInRole("Employee") && x.EmployeeID == CurrentEmployeeId && x.Status == "Pending",
+                    canReview = IsReviewer && x.EmployeeID != CurrentEmployeeId && x.Status == "Pending"
+                }),
+                page, totalPages, totalCount = count
+            });
         return View(new RequestListViewModel<Overtime>
         {
             Items = items, Search = search, Status = status, Sort = sort,
@@ -58,11 +73,23 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
     [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "Employee")]
     public async Task<IActionResult> Create(OvertimeCreateViewModel model)
     {
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid)
+        {
+            if (IsAjaxRequest)
+                return BadRequest(new
+                {
+                    message = "Vui lòng kiểm tra thông tin đơn.",
+                    errors = ModelState.Where(x => x.Value!.Errors.Count > 0)
+                        .ToDictionary(x => x.Key, x => x.Value!.Errors.Select(e =>
+                            string.IsNullOrEmpty(e.ErrorMessage) ? "Giá trị không hợp lệ." : e.ErrorMessage).ToArray())
+                });
+            return View(model);
+        }
         var entity = new Overtime { EmployeeID = CurrentEmployeeId, Status = "Pending", ApprovedBy = null };
         ApplyForm(entity, model);
         Context.OverTimes.Add(entity);
         await Context.SaveChangesAsync();
+        if (IsAjaxRequest) return Json(new { message = "Đã gửi yêu cầu. Đơn đang chờ HR xử lý." });
         TempData["Success"] = "Đã gửi yêu cầu. Đơn đang chờ HR xử lý.";
         return RedirectToAction(nameof(Details), new { id = entity.OvertimeID });
     }
@@ -120,6 +147,7 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         Context.OverTimes.Remove(entity);
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException) { return Conflict("Đơn vừa được xử lý hoặc xóa. Vui lòng tải lại danh sách."); }
+        if (IsAjaxRequest) return Json(new { message = "Đã xóa yêu cầu đang chờ duyệt." });
         TempData["Success"] = "Đã xóa yêu cầu đang chờ duyệt.";
         return RedirectToAction(nameof(Index));
     }
@@ -140,9 +168,13 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         entity.ApprovedBy = CurrentEmployeeId;
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException) { return Conflict("Một người khác vừa xử lý đơn. Vui lòng tải lại danh sách."); }
+        if (IsAjaxRequest)
+            return Json(new { message = decision == "Approved" ? "Đã phê duyệt yêu cầu." : "Đã từ chối yêu cầu." });
         TempData["Success"] = decision == "Approved" ? "Đã phê duyệt yêu cầu." : "Đã từ chối yêu cầu.";
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    private bool IsAjaxRequest => Request.Headers["X-Requested-With"] == "XMLHttpRequest";
 
     private static void ApplyForm(Overtime entity, OvertimeCreateViewModel model)
     {

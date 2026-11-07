@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
+using Microsoft.AspNetCore.Identity;
 
 namespace BTL_WebNC_Quản_lý_chấm_công.Data
 {
@@ -70,6 +71,8 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Data
                 .HasForeignKey(a => a.ReviewedBy).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Attendance>()
                 .HasIndex(a => new { a.EmployeeID, a.WorkDate }).IsUnique();
+            modelBuilder.Entity<Payroll>()
+                .HasIndex(p => new { p.EmployeeID, p.Year, p.Month }).IsUnique();
         }
     }
 }

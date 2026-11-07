@@ -315,8 +315,21 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.Property<decimal>("Allowance")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ApprovedBy")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("BaseSalary")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("CalculatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CalculationDetails")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("Deduction")
                         .HasColumnType("decimal(18,2)");
@@ -329,6 +342,24 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
 
                     b.Property<decimal>("OvertimeHours")
                         .HasColumnType("decimal(7,2)");
+
+                    b.Property<decimal>("OvertimeMultiplier")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal>("OvertimePay")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StandardDays")
+                        .HasColumnType("int");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -349,7 +380,8 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
 
                     b.HasKey("PayrollID");
 
-                    b.HasIndex("EmployeeID");
+                    b.HasIndex("EmployeeID", "Year", "Month")
+                        .IsUnique();
 
                     b.ToTable("Payrolls");
                 });

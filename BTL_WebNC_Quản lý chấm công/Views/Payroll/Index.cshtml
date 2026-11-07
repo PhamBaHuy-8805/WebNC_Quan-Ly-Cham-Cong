@@ -1,0 +1,31 @@
+@model PayrollIndexViewModel
+@{ ViewData["Title"] = "Bảng lương"; }
+<h1>@ViewData["Title"]</h1>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto"><label for="month" class="form-label">Tháng</label><input id="month" name="month" type="number" min="1" max="12" value="@Model.Month" class="form-control" required /></div>
+    <div class="col-auto"><label for="year" class="form-label">Năm</label><input id="year" name="year" type="number" min="2000" max="2100" value="@Model.Year" class="form-control" required /></div>
+    <div class="col-auto align-self-end"><button class="btn btn-primary">Xem bảng lương</button></div>
+</form>
+@if (Model.IsReviewer)
+{
+    <p>Ca 08:00–16:00, nghỉ trưa 12:00–13:00 (7 giờ công). Muộn từ 120 phút tính vắng cả ngày. Chỉ lập lương cho tháng đã kết thúc.</p>
+    <form asp-action="Generate" method="post" class="mb-3">
+        <input type="hidden" name="Month" value="@Model.Month" /><input type="hidden" name="Year" value="@Model.Year" />
+        <button class="btn btn-success">Lập / tính lại lương nháp tháng @Model.Month/@Model.Year</button>
+    </form>
+    <p class="text-muted">Lập cho nhân viên đang hoạt động. Bảng đã duyệt được khóa. Kiểm tra ngày không chấm công và dữ liệu còn thiếu trước khi duyệt.</p>
+}
+else
+{
+    <p>Phiếu lương của bạn được hiển thị sau khi HR duyệt.</p>
+}
+<div class="table-responsive"><table class="table table-striped align-middle">
+    <thead><tr><th>Nhân viên</th><th>Lương cơ bản</th><th>Giờ hưởng lương</th><th>Tiền tăng ca</th><th>Phụ cấp</th><th>Trừ thiếu công</th><th>Tổng lương</th><th>Trạng thái</th><th></th></tr></thead>
+    <tbody>
+    @if (Model.Items.Count == 0) { <tr><td colspan="9">Chưa có bảng lương trong kỳ này.</td></tr> }
+    @foreach (var item in Model.Items)
+    {
+        <tr><td>@item.Employee?.EmployeeCode — @item.Employee?.FullName</td><td>@item.BaseSalary.ToString("N0")</td><td>@item.WorkingHours.ToString("0.##")</td><td>@item.OvertimePay.ToString("N0")</td><td>@item.Allowance.ToString("N0")</td><td>@item.Deduction.ToString("N0")</td><td>@item.TotalSalary.ToString("N0") VNĐ</td><td>@(item.Status switch { "Draft" => "Nháp", "Approved" => "Đã duyệt", "Paid" => "Đã thanh toán", _ => item.Status })</td><td><a asp-action="Details" asp-route-id="@item.PayrollID">Chi tiết</a></td></tr>
+    }
+    </tbody>
+</table></div>
