@@ -22,8 +22,6 @@ public class AttendanceReviewViewModel
 {
     [Required, RegularExpression("^(CheckIn|CheckOut)$")]
     public string Stage { get; set; } = string.Empty;
-    [Required]
-    public string RowVersion { get; set; } = string.Empty;
     [StringLength(500, ErrorMessage = "Ghi chú tối đa 500 ký tự.")]
     public string? ReviewNote { get; set; }
 }

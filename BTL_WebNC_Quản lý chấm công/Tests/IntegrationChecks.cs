@@ -59,17 +59,17 @@ static class IntegrationChecks
             Check((await employeeClient.GetAsync($"/Payroll/Details/{payroll.PayrollID}")).StatusCode == HttpStatusCode.NotFound, "Draft visible to employee");
             var details = await hrClient.GetStringAsync($"/Payroll/Details/{payroll.PayrollID}");
             var csrf = Token(details, "__RequestVerificationToken");
-            var rowVersion = Token(details, "RowVersion");
+            Check(!details.Contains("name=\"RowVersion\""), "Payroll form still requires RowVersion");
             Check(csrf.Length > 0, "Payroll forms not rendered");
-            async Task<HttpResponseMessage> Post(HttpClient client, string action, int id, string version, bool confirm = true, string? token = null) =>
+            async Task<HttpResponseMessage> Post(HttpClient client, string action, int id, bool confirm = true, string? token = null) =>
                 await client.PostAsync($"/Payroll/{action}/{id}", new FormUrlEncodedContent(new Dictionary<string, string>
                 {
-                    ["__RequestVerificationToken"] = token ?? csrf, ["RowVersion"] = version,
+                    ["__RequestVerificationToken"] = token ?? csrf,
                     ["ConfirmAbsences"] = confirm ? "true" : "false"
                 }));
             var legacyDetails = await hrClient.GetStringAsync($"/Payroll/Details/{ownPayroll.PayrollID}");
-            Check((await Post(hrClient, "Approve", ownPayroll.PayrollID, Token(legacyDetails, "RowVersion"), token: Token(legacyDetails, "__RequestVerificationToken"))).StatusCode == HttpStatusCode.Forbidden, "Self approval allowed");
-            await Post(hrClient, "Approve", payroll.PayrollID, rowVersion);
+            Check((await Post(hrClient, "Approve", ownPayroll.PayrollID, token: Token(legacyDetails, "__RequestVerificationToken"))).StatusCode == HttpStatusCode.Forbidden, "Self approval allowed");
+            await Post(hrClient, "Approve", payroll.PayrollID);
             Check((await Reload()).Status == "Approved", "Approval failed");
             Check((await employeeClient.GetAsync($"/Payroll/Details/{payroll.PayrollID}")).StatusCode == HttpStatusCode.OK, "Own approved payslip hidden");
             Check((await employeeClient.GetAsync($"/Payroll/Details/{ownPayroll.PayrollID}")).StatusCode == HttpStatusCode.NotFound, "Other employee payslip exposed");
@@ -78,7 +78,7 @@ static class IntegrationChecks
             { ["Month"] = period.Month.ToString(), ["Year"] = period.Year.ToString(), ["__RequestVerificationToken"] = Token(employeePage, "__RequestVerificationToken") }));
             Check(denied.StatusCode == HttpStatusCode.Forbidden, "Employee generation allowed");
             details = await hrClient.GetStringAsync($"/Payroll/Details/{payroll.PayrollID}");
-            await Post(hrClient, "MarkPaid", payroll.PayrollID, Token(details, "RowVersion"), token: Token(details, "__RequestVerificationToken"));
+            await Post(hrClient, "MarkPaid", payroll.PayrollID, token: Token(details, "__RequestVerificationToken"));
             Check((await Reload()).Status == "Paid", "Payment recording failed");
             Check((await hrClient.GetAsync("/Payroll/Summary")).StatusCode == HttpStatusCode.OK, "Summary page failed");
             Check((await hrClient.GetAsync($"/Payroll/SummaryData?month={period.Month}&year={period.Year}")).StatusCode == HttpStatusCode.OK, "Summary data failed");
@@ -91,7 +91,7 @@ static class IntegrationChecks
             Check((await employeeClient.GetAsync("/Employees")).StatusCode == HttpStatusCode.Forbidden, "Employee can access HR module");
             var frozen = await Reload();
             var paidSnapshot = frozen.TotalSalary;
-            var recalc = await Post(hrClient, "Adjust", payroll.PayrollID, Convert.ToBase64String(frozen.RowVersion));
+            var recalc = await Post(hrClient, "Adjust", payroll.PayrollID);
             Check((await Reload()).TotalSalary == paidSnapshot && (await Reload()).Status == "Paid", "Paid payroll was recalculated");
             checks += await AttendanceChecks.Run(db, hrClient, employeeClient, employee.EmployeeID, hr.EmployeeID, workday);
             Console.WriteLine($"PASS: {checks} SQL/HTTP integration checks (fixtures removed afterwards).");

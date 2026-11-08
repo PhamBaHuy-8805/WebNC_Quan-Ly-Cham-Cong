@@ -58,9 +58,5 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Models
         [StringLength(500)]
         public string? ReviewNote { get; set; }
 
-        // Kiểm soát cập nhật đồng thời
-        [Timestamp]
-        public byte[] RowVersion { get; set; }
-            = Array.Empty<byte>();
     }
 }

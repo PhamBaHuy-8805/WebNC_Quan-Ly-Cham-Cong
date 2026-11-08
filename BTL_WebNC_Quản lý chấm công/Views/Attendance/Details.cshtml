@@ -29,7 +29,6 @@
     <form asp-action="Approve" asp-route-id="@Model.AttendanceID" method="post" class="card card-body mb-3">
         <h2 class="h5">Xử lý yêu cầu @stageName</h2>
         <input type="hidden" name="Stage" value="@stage" />
-        <input type="hidden" name="RowVersion" value="@Convert.ToBase64String(Model.RowVersion)" />
         <div class="mb-3"><label for="ReviewNote" class="form-label">Ghi chú (bắt buộc khi từ chối)</label><textarea id="ReviewNote" name="ReviewNote" maxlength="500" rows="3" class="form-control"></textarea></div>
         <div class="d-flex gap-2"><button type="submit" class="btn btn-success">Xác nhận @stageName</button><button type="submit" class="btn btn-outline-danger" asp-action="Reject" asp-route-id="@Model.AttendanceID">Từ chối @stageName</button></div>
     </form>

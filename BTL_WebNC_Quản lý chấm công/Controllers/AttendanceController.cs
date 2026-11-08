@@ -168,11 +168,6 @@ public class AttendanceController(ApplicationDbContext context, TimeProvider clo
             TempData["Error"] = "Kiểm tra bước xác nhận và biểu mẫu. Lý do từ chối là bắt buộc; ghi chú tối đa 500 ký tự.";
             return RedirectToAction(nameof(Details), new { id });
         }
-        byte[] originalVersion;
-        try { originalVersion = Convert.FromBase64String(model.RowVersion); }
-        catch (FormatException) { return BadRequest("Phiên bản bản ghi không hợp lệ."); }
-        if (originalVersion.Length != 8) return BadRequest("Phiên bản bản ghi không hợp lệ.");
-
         var record = await Context.Attendances.SingleOrDefaultAsync(a => a.AttendanceID == id);
         if (record == null) return NotFound();
         if (record.EmployeeID == CurrentEmployeeId) return Forbid();
@@ -201,7 +196,6 @@ public class AttendanceController(ApplicationDbContext context, TimeProvider clo
             record.ApprovalStatus = decision;
             record.TotalHours = decision == "Approved" ? AttendanceRules.CalculateHours(record.CheckIn.Value, record.CheckOut.Value) : 0;
         }
-        Context.Entry(record).Property(a => a.RowVersion).OriginalValue = originalVersion;
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException)
         {

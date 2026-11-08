@@ -12,11 +12,11 @@ static class AttendanceChecks
         var checks = 0;
         void Check(bool condition, string name) { if (!condition) throw new Exception(name); checks++; }
         static string Field(string html, string name) => WebUtility.HtmlDecode(Regex.Match(html, "name=\"" + name + "\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
-        async Task<HttpResponseMessage> Send(HttpClient client, string action, string html, int? id = null, string? stage = null, string? note = null, string? version = null) =>
+        async Task<HttpResponseMessage> Send(HttpClient client, string action, string html, int? id = null, string? stage = null, string? note = null) =>
             await client.PostAsync($"/Attendance/{action}" + (id.HasValue ? $"/{id}" : ""), new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["__RequestVerificationToken"] = Field(html, "__RequestVerificationToken"),
-                ["Stage"] = stage ?? Field(html, "Stage"), ["RowVersion"] = version ?? Field(html, "RowVersion"), ["ReviewNote"] = note ?? ""
+                ["Stage"] = stage ?? Field(html, "Stage"), ["ReviewNote"] = note ?? ""
             }));
         var today = AttendanceRules.LocalNow(TimeProvider.System).Date;
         async Task<Attendance> Current() => await db.Attendances.AsNoTracking().SingleAsync(a => a.EmployeeID == employeeId && a.WorkDate == today);
@@ -30,12 +30,13 @@ static class AttendanceChecks
         await Send(employee, "CheckOut", page);
         Check((await Current()).CheckOut == null, "Checkout allowed before check-in approval");
         var reviewPage = await hr.GetStringAsync($"/Attendance/Details/{record.AttendanceID}");
-        var staleVersion = Field(reviewPage, "RowVersion");
+        var checkInReviewPage = reviewPage;
+        Check(!reviewPage.Contains("name=\"RowVersion\""), "Attendance form still requires RowVersion");
         Check(Field(reviewPage, "Stage") == "CheckIn", "HR should review check-in before checkout exists");
         await Send(hr, "Approve", reviewPage, record.AttendanceID, "CheckOut");
         Check((await Current()).CheckInApprovalStatus == "Pending", "Skipped check-in approval");
         var employeeDetails = await employee.GetStringAsync($"/Attendance/Details/{record.AttendanceID}");
-        Check((await Send(employee, "Approve", employeeDetails, record.AttendanceID, "CheckIn", version: staleVersion)).StatusCode == HttpStatusCode.Forbidden, "Employee can approve attendance");
+        Check((await Send(employee, "Approve", employeeDetails, record.AttendanceID, "CheckIn")).StatusCode == HttpStatusCode.Forbidden, "Employee can approve attendance");
         await Send(hr, "Reject", reviewPage, record.AttendanceID, "CheckIn");
         Check((await Current()).CheckInApprovalStatus == "Pending", "Rejection accepted without reason");
         await Send(hr, "Approve", reviewPage, record.AttendanceID, "CheckIn");
@@ -55,8 +56,8 @@ static class AttendanceChecks
         Check(summary.AttendanceDays == 0 && summary.WorkingHours == 0 && summary.OvertimeHours == 0 && summary.PendingDays == 1, "Payroll counted unconfirmed checkout");
         reviewPage = await hr.GetStringAsync($"/Attendance/Details/{record.AttendanceID}");
         Check(Field(reviewPage, "Stage") == "CheckOut", "HR checkout form missing");
-        await Send(hr, "Approve", reviewPage, record.AttendanceID, "CheckOut", version: staleVersion);
-        Check((await Current()).CheckOutApprovalStatus == "Pending", "Stale form approved checkout");
+        await Send(hr, "Approve", checkInReviewPage, record.AttendanceID);
+        Check((await Current()).CheckOutApprovalStatus == "Pending", "Repeated check-in approval approved checkout");
         await Send(hr, "Approve", reviewPage, record.AttendanceID, "CheckOut");
         record = await Current();
         Check(record.ApprovalStatus == "Approved" && record.CheckOutApprovalStatus == "Approved" && record.ReviewedBy == hrId, "Checkout not confirmed independently");
