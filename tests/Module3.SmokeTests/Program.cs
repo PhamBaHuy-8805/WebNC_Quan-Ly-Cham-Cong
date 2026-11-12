@@ -6,6 +6,7 @@ using BTL_WebNC_Quản_lý_chấm_công.Models;
 using BTL_WebNC_Quản_lý_chấm_công.Services;
 using BTL_WebNC_Quản_lý_chấm_công.ViewModels;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,6 +18,12 @@ void Check(bool ok, string name)
     checks++;
 }
 bool Valid(object model) => Validator.TryValidateObject(model, new ValidationContext(model), new List<ValidationResult>(), true);
+var passwordHasher = new ExistingAccountPasswordHasher();
+var passwordAccount = new Account();
+var passwordHash = passwordHasher.HashPassword(passwordAccount, "MatKhau@123");
+Check(passwordHasher.VerifyHashedPassword(passwordAccount, passwordHash, "MatKhau@123") != PasswordVerificationResult.Failed, "Hashed password verifies");
+Check(passwordHasher.VerifyHashedPassword(passwordAccount, passwordHash, "wrong") == PasswordVerificationResult.Failed, "Wrong password is rejected");
+Check(passwordHasher.VerifyHashedPassword(passwordAccount, "legacy-pass", "legacy-pass") == PasswordVerificationResult.SuccessRehashNeeded, "Legacy plaintext is upgraded after login");
 var validLeave = new LeaveCreateViewModel { StartDate = new(2026, 12, 1), EndDate = new(2026, 12, 2), Reason = "Personal work" };
 Check(Valid(validLeave), "Accept valid leave range");
 Check(!Valid(new LeaveCreateViewModel { StartDate = new(2026, 12, 2), EndDate = new(2026, 12, 1), Reason = "Test" }), "Reject reversed leave dates");
@@ -53,6 +60,54 @@ foreach (var type in new[] { typeof(LeaveController), typeof(OvertimeController)
             Check(method.IsDefined(typeof(ValidateAntiForgeryTokenAttribute), true), type.Name + "." + method.Name + " validates CSRF token");
     }
 }
+var validProfile = new ProfileContactRequestViewModel
+{
+    Phone = "0901234567", Email = "nhanvien@example.com", Address = "Hà Nội"
+};
+Check(Valid(validProfile), "Accept valid profile contact request");
+Check(!Valid(new ProfileContactRequestViewModel { Email = "not-an-email" }), "Reject invalid profile email");
+Check(!Valid(new ProfileContactRequestViewModel { Phone = "1234567890123456" }), "Reject overly long profile phone");
+Check(!typeof(ProfileContactRequestViewModel).GetProperties().Any(p =>
+        new[] { "EmployeeID", "Status", "ReviewedBy", "OriginalPhone", "OriginalEmail", "OriginalAddress" }.Contains(p.Name)),
+    "Profile contact request cannot bind protected fields");
+Check(typeof(ProfileController).GetCustomAttributes<AuthorizeAttribute>(true)
+        .Any(a => a.Roles == "Employee,HR,Admin"), "ProfileController requires signed-in employee roles");
+foreach (var name in new[] { "Approve", "Reject" })
+{
+    var method = typeof(ProfileController).GetMethod(name)!;
+    Check(method.GetCustomAttributes<AuthorizeAttribute>(true).Any(a => a.Roles == "HR,Admin")
+        && method.IsDefined(typeof(HttpPostAttribute), true)
+        && method.IsDefined(typeof(ValidateAntiForgeryTokenAttribute), true),
+        "Profile." + name + " has role/POST/CSRF guards");
+}
+foreach (var name in new[] { "EditRequest", "CancelRequest" })
+{
+    var methods = typeof(ProfileController).GetMethods()
+        .Where(m => m.Name == name && m.IsDefined(typeof(HttpPostAttribute), true)).ToArray();
+    Check(methods.Length > 0
+        && methods.All(m => m.IsDefined(typeof(ValidateAntiForgeryTokenAttribute), true)),
+        "Profile." + name + " POST validates CSRF token");
+}
+var validPasswordChange = new ChangePasswordViewModel
+{
+    CurrentPassword = "old-pass", NewPassword = "new-pass-123", ConfirmPassword = "new-pass-123"
+};
+Check(Valid(validPasswordChange), "Accept valid self-service password change");
+Check(!Valid(new ChangePasswordViewModel
+{
+    CurrentPassword = "old-pass", NewPassword = "new-pass-123", ConfirmPassword = "different"
+}), "Reject mismatched password confirmation");
+Check(!Valid(new ChangePasswordViewModel
+{
+    CurrentPassword = "old-pass", NewPassword = "12345", ConfirmPassword = "12345"
+}), "Reject short new password");
+var passwordActions = typeof(AccountController).GetMethods()
+    .Where(m => m.Name == "ChangePassword").ToArray();
+Check(passwordActions.Any(m => m.IsDefined(typeof(HttpGetAttribute), true))
+    && passwordActions.Any(m => m.IsDefined(typeof(HttpPostAttribute), true)
+        && m.IsDefined(typeof(ValidateAntiForgeryTokenAttribute), true))
+    && passwordActions.All(m => m.GetCustomAttributes<AuthorizeAttribute>(true).Any()),
+    "Self-service password change requires authentication and CSRF on POST");
 // Chỉ dựng EF model và dịch LINQ thành SQL; không mở kết nối database.
 using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
     .UseSqlServer("Server=localhost;Database=ModelOnly;Integrated Security=True;TrustServerCertificate=True").Options);
@@ -64,6 +119,16 @@ foreach (var type in new[] { typeof(Leave), typeof(Overtime) })
     Check(model.FindProperty("Status")!.IsConcurrencyToken, type.Name + " protects status against concurrent updates");
     Check(model.GetForeignKeys().Any(f => f.Properties.Single().Name == "ApprovedBy" && f.DeleteBehavior == DeleteBehavior.Restrict), type.Name + " approver references Employee");
 }
+var profileModel = db.Model.FindEntityType(typeof(ProfileChangeRequest))!;
+Check(profileModel.FindProperty("Status")!.IsConcurrencyToken, "Profile request protects status against concurrent updates");
+Check(profileModel.GetForeignKeys().Count() == 2
+    && profileModel.GetForeignKeys().All(f => f.DeleteBehavior == DeleteBehavior.Restrict),
+    "Profile request references employee/reviewer without cascade deletion");
+var pendingProfileIndex = profileModel.GetIndexes()
+    .Single(i => i.Properties.Single().Name == "EmployeeID");
+Check(pendingProfileIndex.IsUnique && pendingProfileIndex.GetFilter() == "[Status] = 'Pending'",
+    "At most one pending profile request per employee");
+Check(new ProfileChangeRequest().Status == "Pending", "New profile request starts pending");
 var sql = db.Leaves.AsNoTracking().Where(x => x.EmployeeID == 3 && x.Status == "Pending")
     .OrderByDescending(x => x.StartDate).ThenByDescending(x => x.LeaveID)
     .Include(x => x.Employee).Skip(5).Take(5).ToQueryString();
@@ -88,7 +153,7 @@ Check(AttendanceRules.WorkStatus(day.AddHours(9), day.AddHours(16)) == "LateEarl
 Check(AttendanceRules.LocalNow(new FixedClock(new DateTimeOffset(2026, 10, 13, 18, 0, 0, TimeSpan.Zero))) == day.AddHours(1), "Vietnam date crosses midnight correctly");
 var attendanceModel = db.Model.FindEntityType(typeof(Attendance))!;
 Check(attendanceModel.GetIndexes().Any(i => i.IsUnique && i.Properties.Select(p => p.Name).SequenceEqual(new[] { "EmployeeID", "WorkDate" })), "One attendance record per employee/day");
-Check(attendanceModel.FindProperty("RowVersion")!.IsConcurrencyToken, "Attendance has concurrency protection");
+Check(attendanceModel.FindProperty("RowVersion") == null, "Attendance uses review stages instead of removed RowVersion");
 Check(attendanceModel.GetForeignKeys().Any(f => f.Properties.Single().Name == "ReviewedBy" && f.DeleteBehavior == DeleteBehavior.Restrict), "Reviewer references employee without cascade deletion");
 Check(new Attendance().ApprovalStatus == "Pending", "New attendance requires review");
 foreach (var name in new[] { "CheckIn", "CheckOut", "Approve", "Reject" })

@@ -30,6 +30,8 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Data
 
         public DbSet<Payroll> Payrolls { get; set; }
 
+        public DbSet<ProfileChangeRequest> ProfileChangeRequests { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -76,6 +78,18 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Data
                 .HasForeignKey(a => a.CheckInReviewedBy).OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Payroll>()
                 .HasIndex(p => new { p.EmployeeID, p.Year, p.Month }).IsUnique();
+
+            modelBuilder.Entity<ProfileChangeRequest>()
+                .HasOne(r => r.Employee).WithMany(e => e.ProfileChangeRequests)
+                .HasForeignKey(r => r.EmployeeID).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<ProfileChangeRequest>()
+                .HasOne(r => r.Reviewer).WithMany()
+                .HasForeignKey(r => r.ReviewedBy).OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<ProfileChangeRequest>()
+                .Property(r => r.Status).IsConcurrencyToken();
+            // Mỗi nhân viên chỉ có tối đa một yêu cầu đang chờ duyệt.
+            modelBuilder.Entity<ProfileChangeRequest>()
+                .HasIndex(r => r.EmployeeID).IsUnique().HasFilter("[Status] = 'Pending'");
         }
     }
 }

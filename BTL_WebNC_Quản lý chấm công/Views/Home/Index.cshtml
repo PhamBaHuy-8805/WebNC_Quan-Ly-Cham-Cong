@@ -3,12 +3,36 @@
     ViewData["Title"] = "Tổng quan";
     var vietnamOffset = TimeSpan.FromHours(7);
     var current = Model.CurrentVisit.ToOffset(vietnamOffset);
-    var greeting = User.Identity?.IsAuthenticated == true ? $"Xin chào, {User.Identity.Name}" : "Chào một ngày làm việc mới";
+    var greeting = User.Identity?.IsAuthenticated == true ? $"Xin chào, {Model.Profile?.FullName ?? User.Identity.Name}" : "Chào một ngày làm việc mới";
 }
 <div class="home-heading">
     <div><span class="eyebrow">MỖI NGÀY ĐỀU CÓ Ý NGHĨA</span><h1>@greeting<span style="color:#6a9c7c">.</span></h1><p>Mọi thông tin công việc, gọn gàng trong một không gian.</p></div>
     <time class="period-pill" datetime="@current.ToString("yyyy-MM-dd")">@current.ToString("dd 'tháng' MM, yyyy")</time>
 </div>
+@if (Model.Profile is { } profile)
+{
+    <section class="card mb-4" aria-labelledby="profile-summary-heading">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <span class="user-avatar" aria-hidden="true">@(string.IsNullOrEmpty(profile.FullName) ? "N" : profile.FullName[..1].ToUpperInvariant())</span>
+            <div class="flex-grow-1">
+                <h2 id="profile-summary-heading" class="h5 mb-1">@profile.FullName</h2>
+                <p class="text-muted mb-1">
+                    @profile.EmployeeCode · @(profile.PositionName ?? "Chưa có chức vụ") · @(profile.DepartmentName ?? "Chưa phân phòng")
+                </p>
+                <p class="mb-0 small">
+                    @(profile.Phone ?? "Chưa có số điện thoại") · @(profile.Email ?? "Chưa có email")
+                </p>
+            </div>
+            <div class="d-flex flex-column align-items-end gap-2">
+                @if (profile.HasPendingProfileRequest)
+                {
+                    <span class="badge bg-warning">Yêu cầu hồ sơ chờ duyệt</span>
+                }
+                <a asp-controller="Profile" asp-action="Index" class="btn btn-outline-primary btn-sm">Hồ sơ của tôi</a>
+            </div>
+        </div>
+    </section>
+}
 <section class="home-hero" aria-labelledby="hero-title">
     <div class="hero-copy">
         <span class="eyebrow">CHỦ ĐỘNG HÔM NAY · VỮNG BƯỚC NGÀY MAI</span>

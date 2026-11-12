@@ -18,14 +18,27 @@ public class AccountCookieEvents(ApplicationDbContext context) : CookieAuthentic
                 .SingleOrDefaultAsync(a => a.UserID == id, cookieContext.HttpContext.RequestAborted)
             : null;
 
-        if (account is not { Status: "Active", Employee: { Status: "Active" }, Role: not null }
+        if (principal == null
+            || account is not { Status: "Active", Employee: { Status: "Active" }, Role: not null }
             || account.Role.RoleName is not ("Employee" or "HR" or "Admin")
-            || principal?.FindFirstValue(ClaimTypes.Role) != account.Role.RoleName
+            || principal.FindFirstValue(ClaimTypes.Role) != account.Role.RoleName
             || principal.FindFirstValue("EmployeeID") != account.EmployeeID?.ToString()
             || principal.Identity?.Name != account.Username)
         {
             cookieContext.RejectPrincipal();
             await cookieContext.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return;
+        }
+
+        // HR có thể đổi họ tên nhân viên; cập nhật claim hiển thị mà không cần đăng nhập lại.
+        if (!string.Equals(principal.FindFirstValue("FullName"), account.Employee.FullName, StringComparison.Ordinal)
+            && principal.Identity is ClaimsIdentity identity)
+        {
+            var existing = identity.FindFirst("FullName");
+            if (existing != null) identity.RemoveClaim(existing);
+            identity.AddClaim(new Claim("FullName", account.Employee.FullName));
+            cookieContext.ReplacePrincipal(principal);
+            cookieContext.ShouldRenew = true;
         }
     }
 }

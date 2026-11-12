@@ -30,7 +30,7 @@ Equal(false, PayrollRules.IsPaidLeave("Unpaid"), "Unpaid leave");
 Equal((1, 1), PayrollRules.LateEarly("LateAndEarly"), "Legacy late early label");
 var account = new Account();
 var hasher = new ExistingAccountPasswordHasher();
-Equal(PasswordVerificationResult.Success, hasher.VerifyHashedPassword(account, "123456", "123456"), "Existing practice account login");
+Equal(PasswordVerificationResult.SuccessRehashNeeded, hasher.VerifyHashedPassword(account, "123456", "123456"), "Existing practice account login is upgraded");
 Equal(PasswordVerificationResult.Failed, hasher.VerifyHashedPassword(account, "123456", "incorrect"), "Wrong practice password");
 var hash = hasher.HashPassword(account, "test-password");
 Equal(PasswordVerificationResult.Success, hasher.VerifyHashedPassword(account, hash, "test-password"), "Identity hash login");

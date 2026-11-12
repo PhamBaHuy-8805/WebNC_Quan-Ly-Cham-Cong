@@ -1,0 +1,61 @@
+@model AccountCreateViewModel
+@{
+    ViewData["Title"] = "Thêm tài khoản";
+}
+
+<h2 class="mb-4">Thêm tài khoản</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label"></label>
+                <input asp-for="Username" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+                <div class="form-text">Mật khẩu tối thiểu 6 ký tự.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="RoleID" class="form-label"></label>
+                <select asp-for="RoleID" asp-items="ViewBag.Roles" class="form-select">
+                    <option value="">-- Chọn vai trò --</option>
+                </select>
+                <span asp-validation-for="RoleID" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="EmployeeID" class="form-label"></label>
+                <select asp-for="EmployeeID" asp-items="ViewBag.Employees" class="form-select">
+                    <option value="">-- Chọn nhân viên --</option>
+                </select>
+                <span asp-validation-for="EmployeeID" class="text-danger"></span>
+                <div class="form-text">Chỉ hiển thị nhân viên đang làm việc và chưa có tài khoản.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Active">Hoạt động</option>
+                    <option value="Locked">Đã khóa</option>
+                </select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-success">Lưu tài khoản</button>
+            <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

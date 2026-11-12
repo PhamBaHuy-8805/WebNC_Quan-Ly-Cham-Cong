@@ -398,6 +398,71 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.ToTable("Positions");
                 });
 
+            modelBuilder.Entity("BTL_WebNC_Quản_lý_chấm_công.Models.ProfileChangeRequest", b =>
+                {
+                    b.Property<int>("ProfileChangeRequestID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProfileChangeRequestID"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmployeeID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OriginalAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("OriginalEmail")
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("OriginalPhone")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("RequestedAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("RequestedEmail")
+                        .HasMaxLength(254)
+                        .HasColumnType("nvarchar(254)");
+
+                    b.Property<string>("RequestedPhone")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReviewedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("ProfileChangeRequestID");
+
+                    b.HasIndex("EmployeeID")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Pending'");
+
+                    b.HasIndex("ReviewedBy");
+
+                    b.ToTable("ProfileChangeRequests");
+                });
+
             modelBuilder.Entity("BTL_WebNC_Quản_lý_chấm_công.Models.Role", b =>
                 {
                     b.Property<int>("RoleID")
@@ -524,6 +589,24 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.Navigation("Employee");
                 });
 
+            modelBuilder.Entity("BTL_WebNC_Quản_lý_chấm_công.Models.ProfileChangeRequest", b =>
+                {
+                    b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Employee")
+                        .WithMany("ProfileChangeRequests")
+                        .HasForeignKey("EmployeeID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BTL_WebNC_Quản_lý_chấm_công.Models.Employee", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("Reviewer");
+                });
+
             modelBuilder.Entity("BTL_WebNC_Quản_lý_chấm_công.Models.Department", b =>
                 {
                     b.Navigation("Employees");
@@ -540,6 +623,8 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Migrations
                     b.Navigation("Overtimes");
 
                     b.Navigation("Payrolls");
+
+                    b.Navigation("ProfileChangeRequests");
                 });
 
             modelBuilder.Entity("BTL_WebNC_Quản_lý_chấm_công.Models.Position", b =>

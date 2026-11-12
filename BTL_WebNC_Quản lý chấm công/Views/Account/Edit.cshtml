@@ -1,0 +1,70 @@
+@model AccountEditViewModel
+@{
+    ViewData["Title"] = "Sửa tài khoản";
+    var isSelf = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value == Model.UserID.ToString();
+}
+
+<h2 class="mb-4">Sửa tài khoản</h2>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="UserID" type="hidden" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @if (isSelf)
+            {
+                <div class="alert alert-info">
+                    Đây là tài khoản đang đăng nhập. Bạn chỉ có thể đổi mật khẩu của chính mình.
+                </div>
+            }
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label"></label>
+                <input asp-for="Username" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="NewPassword" class="form-label"></label>
+                <input asp-for="NewPassword" class="form-control" autocomplete="new-password" />
+                <span asp-validation-for="NewPassword" class="text-danger"></span>
+                <div class="form-text">Để trống nếu không đổi mật khẩu. Mật khẩu mới tối thiểu 6 ký tự.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="RoleID" class="form-label"></label>
+                <select asp-for="RoleID" asp-items="ViewBag.Roles" class="form-select">
+                    <option value="">-- Chọn vai trò --</option>
+                </select>
+                <span asp-validation-for="RoleID" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="EmployeeID" class="form-label"></label>
+                <select asp-for="EmployeeID" asp-items="ViewBag.Employees" class="form-select">
+                    <option value="">-- Không gán --</option>
+                </select>
+                <span asp-validation-for="EmployeeID" class="text-danger"></span>
+                <div class="form-text">Tài khoản không gán nhân viên sẽ không thể đăng nhập.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select">
+                    <option value="Active">Hoạt động</option>
+                    <option value="Locked">Đã khóa</option>
+                </select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-success">Lưu thay đổi</button>
+            <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

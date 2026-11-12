@@ -138,9 +138,10 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
                 await _db.Attendances.AnyAsync(x => x.EmployeeID == id) ||
                 await _db.Leaves.AnyAsync(x => x.EmployeeID == id || x.ApprovedBy == id) ||
                 await _db.OverTimes.AnyAsync(x => x.EmployeeID == id || x.ApprovedBy == id) ||
-                await _db.Payrolls.AnyAsync(x => x.EmployeeID == id);
+                await _db.Payrolls.AnyAsync(x => x.EmployeeID == id) ||
+                await _db.ProfileChangeRequests.AnyAsync(x => x.EmployeeID == id || x.ReviewedBy == id);
             if (hasRelations)
-                return Conflict(new { message = "Nhân viên có tài khoản, chấm công, nghỉ phép, tăng ca hoặc bảng lương; không thể xóa. Hãy chuyển trạng thái sang Inactive." });
+                return Conflict(new { message = "Nhân viên có tài khoản, chấm công, nghỉ phép, tăng ca, yêu cầu hồ sơ hoặc bảng lương; không thể xóa. Hãy chuyển trạng thái sang Inactive." });
 
             _db.Employees.Remove(employee);
             try

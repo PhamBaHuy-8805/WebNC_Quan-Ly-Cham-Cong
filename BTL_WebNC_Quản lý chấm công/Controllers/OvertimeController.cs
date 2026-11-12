@@ -1,5 +1,6 @@
 using BTL_WebNC_Quản_lý_chấm_công.Data;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
+using BTL_WebNC_Quản_lý_chấm_công.Services;
 using BTL_WebNC_Quản_lý_chấm_công.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -89,6 +90,7 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         ApplyForm(entity, model);
         Context.OverTimes.Add(entity);
         await Context.SaveChangesAsync();
+        ReportService.Invalidate();
         if (IsAjaxRequest) return Json(new { message = "Đã gửi yêu cầu. Đơn đang chờ HR xử lý." });
         TempData["Success"] = "Đã gửi yêu cầu. Đơn đang chờ HR xử lý.";
         return RedirectToAction(nameof(Details), new { id = entity.OvertimeID });
@@ -123,6 +125,7 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         ApplyForm(entity, model);
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException) { return Conflict("Đơn vừa được xử lý hoặc xóa. Vui lòng tải lại danh sách."); }
+        ReportService.Invalidate();
         TempData["Success"] = "Đã cập nhật yêu cầu.";
         return RedirectToAction(nameof(Details), new { id });
     }
@@ -147,6 +150,7 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         Context.OverTimes.Remove(entity);
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException) { return Conflict("Đơn vừa được xử lý hoặc xóa. Vui lòng tải lại danh sách."); }
+        ReportService.Invalidate();
         if (IsAjaxRequest) return Json(new { message = "Đã xóa yêu cầu đang chờ duyệt." });
         TempData["Success"] = "Đã xóa yêu cầu đang chờ duyệt.";
         return RedirectToAction(nameof(Index));
@@ -168,6 +172,7 @@ public class OvertimeController(ApplicationDbContext context) : RequestControlle
         entity.ApprovedBy = CurrentEmployeeId;
         try { await Context.SaveChangesAsync(); }
         catch (DbUpdateConcurrencyException) { return Conflict("Một người khác vừa xử lý đơn. Vui lòng tải lại danh sách."); }
+        ReportService.Invalidate();
         if (IsAjaxRequest)
             return Json(new { message = decision == "Approved" ? "Đã phê duyệt yêu cầu." : "Đã từ chối yêu cầu." });
         TempData["Success"] = decision == "Approved" ? "Đã phê duyệt yêu cầu." : "Đã từ chối yêu cầu.";

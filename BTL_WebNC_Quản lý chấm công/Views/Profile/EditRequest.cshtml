@@ -1,0 +1,76 @@
+@model ProfileContactRequestViewModel
+@using BTL_WebNC_Quản_lý_chấm_công.Models
+@{
+    ViewData["Title"] = "Yêu cầu cập nhật thông tin";
+    var employee = ViewData["Employee"] as Employee;
+}
+<h1>@ViewData["Title"]</h1>
+<p class="text-muted">Thay đổi chỉ được áp dụng sau khi HR/Admin phê duyệt.</p>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">Thông tin liên hệ đề nghị cập nhật</div>
+            <div class="card-body">
+                <div class="alert alert-info" role="note">
+                    Bạn chỉ có thể đề nghị đổi số điện thoại, email và địa chỉ. Các thông tin khác do HR/Admin quản lý.
+                    Mỗi lần chỉ có một yêu cầu đang chờ duyệt.
+                </div>
+                <form asp-action="EditRequest" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                    <div class="mb-3">
+                        <label asp-for="Phone" class="form-label"></label>
+                        <input asp-for="Phone" class="form-control" autocomplete="tel" />
+                        <span asp-validation-for="Phone" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" type="email" class="form-control" autocomplete="email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Address" class="form-label"></label>
+                        <textarea asp-for="Address" class="form-control" rows="3" autocomplete="street-address"></textarea>
+                        <span asp-validation-for="Address" class="text-danger"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Gửi yêu cầu</button>
+                    <a asp-action="Index" class="btn btn-outline-secondary">Quay lại</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">Thông tin hiện tại</div>
+            <div class="card-body">
+                @if (employee != null)
+                {
+                    <dl class="row mb-0">
+                        <dt class="col-sm-5">Mã nhân viên</dt>
+                        <dd class="col-sm-7">@employee.EmployeeCode</dd>
+                        <dt class="col-sm-5">Họ và tên</dt>
+                        <dd class="col-sm-7">@employee.FullName</dd>
+                        <dt class="col-sm-5">Số điện thoại</dt>
+                        <dd class="col-sm-7">@(employee.Phone ?? "Chưa cập nhật")</dd>
+                        <dt class="col-sm-5">Email</dt>
+                        <dd class="col-sm-7 text-break">@(employee.Email ?? "Chưa cập nhật")</dd>
+                        <dt class="col-sm-5">Địa chỉ</dt>
+                        <dd class="col-sm-7 text-break">@(employee.Address ?? "Chưa cập nhật")</dd>
+                        <dt class="col-sm-5">Phòng ban</dt>
+                        <dd class="col-sm-7">@(employee.Department?.DepartmentName ?? "Chưa phân phòng")</dd>
+                        <dt class="col-sm-5">Chức vụ</dt>
+                        <dd class="col-sm-7">@(employee.Position?.PositionName ?? "Chưa có chức vụ")</dd>
+                    </dl>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">Không tải được thông tin nhân viên.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

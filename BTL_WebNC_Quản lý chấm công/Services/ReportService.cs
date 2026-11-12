@@ -38,7 +38,7 @@ public class ReportService(ApplicationDbContext context, PayrollService payroll,
     public async Task<IReadOnlyList<(int Id, string Name)>> GetDepartmentsAsync()
     {
         // Danh mục ít thay đổi nên cache 5 phút.
-        return (await cache.GetOrCreateAsync("report:departments", async entry =>
+        return (await cache.GetOrCreateAsync($"report:{_version}:departments", async entry =>
         {
             entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
             return (IReadOnlyList<(int, string)>)(await context.Departments.AsNoTracking()

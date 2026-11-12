@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using BTL_WebNC_Quản_lý_chấm_công.Data;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
+using BTL_WebNC_Quản_lý_chấm_công.Services;
 using BTL_WebNC_Quản_lý_chấm_công.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -60,6 +61,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
             try
             {
                 await _db.SaveChangesAsync();
+                ReportService.Invalidate();
                 return Json(new { success = true, message = "Đã thêm phòng ban.", id = entity.DepartmentID });
             }
             catch (DbUpdateException) { return Conflict(new { message = "Không thể lưu phòng ban." }); }
@@ -77,6 +79,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
             try
             {
                 await _db.SaveChangesAsync();
+                ReportService.Invalidate();
                 return Json(new { success = true, message = "Đã xóa phòng ban." });
             }
             catch (DbUpdateException) { return Conflict(new { message = "Phòng ban có dữ liệu liên quan; không thể xóa." }); }

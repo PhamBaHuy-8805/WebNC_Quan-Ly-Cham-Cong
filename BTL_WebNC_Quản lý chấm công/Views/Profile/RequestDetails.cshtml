@@ -1,0 +1,112 @@
+@model ProfileRequestDetailsViewModel
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu hồ sơ";
+    var request = Model.Request;
+    var employee = request.Employee;
+}
+<h1>@ViewData["Title"]</h1>
+
+@if (Model.HasConflict && request.Status == "Pending")
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Dữ liệu đã thay đổi.</strong> Thông tin liên hệ hiện tại của nhân viên không còn giống ảnh chụp lúc gửi yêu cầu.
+        Không thể phê duyệt để tránh ghi đè dữ liệu mới; hãy từ chối và đề nghị nhân viên gửi lại yêu cầu.
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">So sánh thông tin</div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Trường</th>
+                                <th>Lúc gửi yêu cầu</th>
+                                <th>Đề nghị cập nhật</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Số điện thoại</td>
+                                <td>@(request.OriginalPhone ?? "(để trống)")</td>
+                                <td class="@(request.RequestedPhone != request.OriginalPhone ? "fw-semibold" : "")">@(request.RequestedPhone ?? "(để trống)")</td>
+                            </tr>
+                            <tr>
+                                <td>Email</td>
+                                <td class="text-break">@(request.OriginalEmail ?? "(để trống)")</td>
+                                <td class="text-break @(request.RequestedEmail != request.OriginalEmail ? "fw-semibold" : "")">@(request.RequestedEmail ?? "(để trống)")</td>
+                            </tr>
+                            <tr>
+                                <td>Địa chỉ</td>
+                                <td class="text-break">@(request.OriginalAddress ?? "(để trống)")</td>
+                                <td class="text-break @(request.RequestedAddress != request.OriginalAddress ? "fw-semibold" : "")">@(request.RequestedAddress ?? "(để trống)")</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                @if (request.Status == "Pending" && Model.HasConflict)
+                {
+                    <div class="mt-3">
+                        <strong>Giá trị hiện tại:</strong>
+                        <div>Số điện thoại: @(Model.CurrentPhone ?? "(để trống)")</div>
+                        <div class="text-break">Email: @(Model.CurrentEmail ?? "(để trống)")</div>
+                        <div class="text-break">Địa chỉ: @(Model.CurrentAddress ?? "(để trống)")</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card mb-4">
+            <div class="card-header">Thông tin yêu cầu</div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Nhân viên</dt>
+                    <dd class="col-sm-7">@(employee?.EmployeeCode ?? "") — @(employee?.FullName ?? "Không xác định")</dd>
+                    <dt class="col-sm-5">Gửi lúc</dt>
+                    <dd class="col-sm-7">@request.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+                    <dt class="col-sm-5">Trạng thái</dt>
+                    <dd class="col-sm-7"><partial name="_RequestStatus" model="request.Status" /></dd>
+                    <dt class="col-sm-5">Người xử lý</dt>
+                    <dd class="col-sm-7">@(request.Status == "Cancelled" ? "Nhân viên tự hủy" : request.Reviewer?.FullName ?? "Chưa xử lý")</dd>
+                    <dt class="col-sm-5">Xử lý lúc</dt>
+                    <dd class="col-sm-7">@(request.ReviewedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Chưa xử lý")</dd>
+                    <dt class="col-sm-5">Ghi chú</dt>
+                    <dd class="col-sm-7 text-break">@(request.ReviewNote ?? "Không có")</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (request.Status == "Pending")
+        {
+            if (request.EmployeeID == (int?)ViewData["CurrentEmployeeID"])
+            {
+                <div class="alert alert-secondary" role="alert">Bạn không thể tự duyệt yêu cầu của chính mình.</div>
+            }
+            else
+            {
+                <div class="card">
+                    <div class="card-header">Xử lý yêu cầu</div>
+                    <div class="card-body">
+                        <form asp-action="Approve" asp-route-id="@request.ProfileChangeRequestID" method="post">
+                            <div class="mb-3">
+                                <label for="reviewNote" class="form-label">Ghi chú duyệt (bắt buộc khi từ chối)</label>
+                                <textarea id="reviewNote" name="reviewNote" class="form-control" rows="3" maxlength="500"
+                                          placeholder="Nhập lý do từ chối hoặc ghi chú phê duyệt"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-success" disabled="@(Model.HasConflict ? "disabled" : null)">Phê duyệt</button>
+                            <button type="submit" class="btn btn-danger"
+                                    formaction="@Url.Action("Reject", new { id = request.ProfileChangeRequestID })">Từ chối</button>
+                        </form>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+<a asp-action="Requests" class="btn btn-outline-secondary mt-4">Về danh sách yêu cầu</a>

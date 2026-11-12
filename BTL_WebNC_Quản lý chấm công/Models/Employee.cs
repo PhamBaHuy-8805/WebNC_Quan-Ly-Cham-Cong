@@ -53,5 +53,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Models
         public ICollection<Overtime> Overtimes { get; set; } = new List<Overtime>();
 
         public ICollection<Payroll> Payrolls { get; set; } = new List<Payroll>();
+
+        public ICollection<ProfileChangeRequest> ProfileChangeRequests { get; set; } = new List<ProfileChangeRequest>();
     }
 }

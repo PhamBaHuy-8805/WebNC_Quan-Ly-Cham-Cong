@@ -1,0 +1,96 @@
+@model RequestListViewModel<ProfileChangeRequest>
+@{
+    ViewData["Title"] = "Yêu cầu hồ sơ";
+}
+<h1>@ViewData["Title"]</h1>
+<p class="text-muted">Duyệt các yêu cầu cập nhật số điện thoại, email và địa chỉ do nhân viên gửi.</p>
+
+<form asp-action="Requests" method="get" class="row g-2 mb-3">
+    <div class="col-md-6">
+        <label asp-for="Search" class="form-label">Mã hoặc tên nhân viên</label>
+        <input asp-for="Search" class="form-control" placeholder="Tìm theo mã hoặc họ tên" />
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Status" class="form-label">Trạng thái</label>
+        <select asp-for="Status" class="form-select">
+            <option value="All">Tất cả</option>
+            <option value="Pending">Chờ duyệt</option>
+            <option value="Approved">Đã duyệt</option>
+            <option value="Rejected">Từ chối</option>
+            <option value="Cancelled">Đã hủy</option>
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100">Lọc</button>
+    </div>
+</form>
+
+<p role="status">Có <strong>@Model.TotalCount</strong> yêu cầu phù hợp.</p>
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Nhân viên</th>
+                <th>Nội dung đề nghị</th>
+                <th>Gửi lúc</th>
+                <th>Trạng thái</th>
+                <th>Người xử lý</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr><td colspan="6" class="text-center text-muted">Không có yêu cầu nào.</td></tr>
+            }
+            else
+            {
+                @foreach (var request in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            <strong>@(request.Employee?.EmployeeCode ?? "")</strong><br />
+                            @(request.Employee?.FullName ?? "Không xác định")
+                        </td>
+                        <td>
+                            @if (request.RequestedPhone != request.OriginalPhone)
+                            {
+                                <div>SĐT: @(request.RequestedPhone ?? "(để trống)")</div>
+                            }
+                            @if (request.RequestedEmail != request.OriginalEmail)
+                            {
+                                <div class="text-break">Email: @(request.RequestedEmail ?? "(để trống)")</div>
+                            }
+                            @if (request.RequestedAddress != request.OriginalAddress)
+                            {
+                                <div class="text-break">Địa chỉ: @(request.RequestedAddress ?? "(để trống)")</div>
+                            }
+                        </td>
+                        <td>@request.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><partial name="_RequestStatus" model="request.Status" /></td>
+                        <td>@(request.Status == "Cancelled" ? "Nhân viên tự hủy" : request.Reviewer?.FullName ?? "Chưa xử lý")</td>
+                        <td>
+                            <a asp-action="RequestDetails" asp-route-id="@request.ProfileChangeRequestID" class="btn btn-sm btn-outline-primary">Xem</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@if (Model.TotalPages > 1)
+{
+    <nav aria-label="Phân trang yêu cầu hồ sơ">
+        <ul class="pagination">
+            @for (var pageNumber = 1; pageNumber <= Model.TotalPages; pageNumber++)
+            {
+                <li class="page-item @(pageNumber == Model.Page ? "active" : "")">
+                    <a class="page-link" asp-action="Requests" asp-route-search="@Model.Search"
+                       asp-route-status="@Model.Status" asp-route-page="@pageNumber">@pageNumber</a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

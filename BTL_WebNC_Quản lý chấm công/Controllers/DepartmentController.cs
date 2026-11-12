@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using BTL_WebNC_Quản_lý_chấm_công.Data;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
+using BTL_WebNC_Quản_lý_chấm_công.Services;
 
 namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
 {
@@ -68,6 +69,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
 
             _context.Departments.Add(input);
             await _context.SaveChangesAsync();
+            ReportService.Invalidate();
 
             TempData["Success"] = "Thêm phòng ban thành công";
             return RedirectToAction(nameof(Index));
@@ -116,6 +118,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
             department.Description = input.Description;
 
             await _context.SaveChangesAsync();
+            ReportService.Invalidate();
 
             TempData["Success"] = "Cập nhật phòng ban thành công";
             return RedirectToAction(nameof(Index));
@@ -158,6 +161,7 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
 
             department.Status = "Inactive";
             await _context.SaveChangesAsync();
+            ReportService.Invalidate();
 
             TempData["Success"] = "Đã ngừng hoạt động phòng ban";
             return RedirectToAction(nameof(Index));

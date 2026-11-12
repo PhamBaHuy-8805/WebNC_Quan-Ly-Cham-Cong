@@ -1,0 +1,60 @@
+@model IEnumerable<BTL_WebNC_Quản_lý_chấm_công.Models.Account>
+@{
+    ViewData["Title"] = "Quản lý tài khoản";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+}
+
+<h2 class="mb-4">Quản lý tài khoản</h2>
+
+<a asp-action="Create" class="btn btn-primary mb-3">+ Thêm tài khoản</a>
+
+<div class="table-responsive">
+    <table class="table table-bordered table-striped table-hover align-middle">
+        <thead class="table-dark">
+            <tr>
+                <th>Tên đăng nhập</th>
+                <th>Nhân viên</th>
+                <th>Vai trò</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                var isSelf = currentUserId == item.UserID.ToString();
+                <tr>
+                    <td>
+                        @item.Username
+                        @if (isSelf)
+                        {
+                            <span class="badge bg-info text-dark">Bạn</span>
+                        }
+                    </td>
+                    <td>
+                        @(item.Employee is null
+                            ? "Chưa gán"
+                            : $"{item.Employee.EmployeeCode} · {item.Employee.FullName}")
+                    </td>
+                    <td>@(item.Role?.RoleName ?? "Chưa gán")</td>
+                    <td>
+                        <span class="badge @(item.Status == "Active" ? "bg-success" : "bg-secondary")">
+                            @(item.Status == "Active" ? "Hoạt động" : "Đã khóa")
+                        </span>
+                    </td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.UserID" class="btn btn-sm btn-warning">Sửa</a>
+                        @if (!isSelf)
+                        {
+                            <form asp-action="Delete" asp-route-id="@item.UserID" method="post" class="d-inline"
+                                  onsubmit="return confirm('Xóa tài khoản @item.Username?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-danger">Xóa</button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,159 @@
+@model ProfileIndexViewModel
+@{
+    ViewData["Title"] = "Thông tin cá nhân";
+    var employee = Model.Employee;
+}
+<div class="home-heading">
+    <div>
+        <span class="eyebrow">HỒ SƠ CỦA BẠN</span>
+        <h1>@employee.FullName</h1>
+        <p>@employee.EmployeeCode · @(employee.Position?.PositionName ?? "Chưa có chức vụ") · @(employee.Department?.DepartmentName ?? "Chưa phân phòng")</p>
+    </div>
+    <span class="badge bg-@(employee.Status == "Active" ? "success" : "secondary")">@(employee.Status == "Active" ? "Đang làm việc" : "Ngừng hoạt động")</span>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                <span>Thông tin cá nhân</span>
+                <div class="d-flex flex-wrap gap-2">
+                    <a asp-controller="Account" asp-action="ChangePassword" class="btn btn-sm btn-outline-secondary">Đổi mật khẩu</a>
+                    @if (Model.PendingRequest == null)
+                    {
+                        <a asp-action="EditRequest" class="btn btn-sm btn-outline-primary">Yêu cầu cập nhật liên hệ</a>
+                    }
+                </div>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Mã nhân viên</dt>
+                    <dd class="col-sm-8">@employee.EmployeeCode</dd>
+
+                    <dt class="col-sm-4">Họ và tên</dt>
+                    <dd class="col-sm-8">@employee.FullName</dd>
+
+                    <dt class="col-sm-4">Ngày sinh</dt>
+                    <dd class="col-sm-8">@(employee.DateOfBirth?.ToString("dd/MM/yyyy") ?? "Chưa cập nhật")</dd>
+
+                    <dt class="col-sm-4">Giới tính</dt>
+                    <dd class="col-sm-8">@(employee.Gender ?? "Chưa cập nhật")</dd>
+
+                    <dt class="col-sm-4">Số điện thoại</dt>
+                    <dd class="col-sm-8">@(employee.Phone ?? "Chưa cập nhật")</dd>
+
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8 text-break">@(employee.Email ?? "Chưa cập nhật")</dd>
+
+                    <dt class="col-sm-4">Địa chỉ</dt>
+                    <dd class="col-sm-8 text-break">@(employee.Address ?? "Chưa cập nhật")</dd>
+
+                    <dt class="col-sm-4">Phòng ban</dt>
+                    <dd class="col-sm-8">@(employee.Department?.DepartmentName ?? "Chưa phân phòng")</dd>
+
+                    <dt class="col-sm-4">Chức vụ</dt>
+                    <dd class="col-sm-8">@(employee.Position?.PositionName ?? "Chưa có chức vụ")</dd>
+
+                    <dt class="col-sm-4">Ngày vào làm</dt>
+                    <dd class="col-sm-8">@employee.HireDate.ToString("dd/MM/yyyy")</dd>
+
+                    <dt class="col-sm-4">Lương cơ bản</dt>
+                    <dd class="col-sm-8">@employee.Salary.ToString("N0") VNĐ</dd>
+                </dl>
+                <p class="text-muted mt-3 mb-0">
+                    Chỉ số điện thoại, email và địa chỉ có thể được đề nghị cập nhật. Các thông tin còn lại do HR/Admin quản lý.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="card mb-4">
+            <div class="card-header">Yêu cầu đang chờ duyệt</div>
+            <div class="card-body">
+                @if (Model.PendingRequest is ProfileChangeRequest pending)
+                {
+                    <p class="mb-2">Yêu cầu gửi lúc <strong>@pending.CreatedAt.ToString("dd/MM/yyyy HH:mm")</strong> đang chờ HR xử lý.</p>
+                    <ul class="mb-3">
+                        @if (pending.RequestedPhone != pending.OriginalPhone)
+                        {
+                            <li>Số điện thoại: <strong>@(pending.RequestedPhone ?? "(để trống)")</strong></li>
+                        }
+                        @if (pending.RequestedEmail != pending.OriginalEmail)
+                        {
+                            <li>Email: <strong>@(pending.RequestedEmail ?? "(để trống)")</strong></li>
+                        }
+                        @if (pending.RequestedAddress != pending.OriginalAddress)
+                        {
+                            <li>Địa chỉ: <strong>@(pending.RequestedAddress ?? "(để trống)")</strong></li>
+                        }
+                    </ul>
+                    <form asp-action="CancelRequest" asp-route-id="@pending.ProfileChangeRequestID" method="post">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Hủy yêu cầu</button>
+                    </form>
+                }
+                else
+                {
+                    <p class="mb-3">Bạn chưa có yêu cầu cập nhật thông tin liên hệ nào đang chờ duyệt.</p>
+                    <a asp-action="EditRequest" class="btn btn-primary btn-sm">Gửi yêu cầu cập nhật</a>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Lịch sử yêu cầu</div>
+            <div class="card-body">
+                @if (Model.Requests.Count == 0)
+                {
+                    <p class="text-muted mb-0">Chưa có yêu cầu cập nhật nào.</p>
+                }
+                else
+                {
+                    <div class="d-grid gap-3">
+                        @foreach (var request in Model.Requests)
+                        {
+                            <div class="border-bottom pb-3">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <strong>@request.CreatedAt.ToString("dd/MM/yyyy HH:mm")</strong>
+                                    <partial name="_RequestStatus" model="request.Status" />
+                                </div>
+                                <div class="mt-2">
+                                    @if (request.RequestedPhone != request.OriginalPhone)
+                                    {
+                                        <div>Số điện thoại: @(request.RequestedPhone ?? "(để trống)")</div>
+                                    }
+                                    @if (request.RequestedEmail != request.OriginalEmail)
+                                    {
+                                        <div class="text-break">Email: @(request.RequestedEmail ?? "(để trống)")</div>
+                                    }
+                                    @if (request.RequestedAddress != request.OriginalAddress)
+                                    {
+                                        <div class="text-break">Địa chỉ: @(request.RequestedAddress ?? "(để trống)")</div>
+                                    }
+                                </div>
+                                <div class="text-muted mt-1">
+                                    @if (request.Status == "Cancelled")
+                                    {
+                                        <span>Bạn đã tự hủy yêu cầu.</span>
+                                    }
+                                    else if (request.Reviewer != null)
+                                    {
+                                        <span>Người xử lý: @request.Reviewer.FullName</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Chưa có người xử lý.</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(request.ReviewNote))
+                                    {
+                                        <span>· Ghi chú: @request.ReviewNote</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

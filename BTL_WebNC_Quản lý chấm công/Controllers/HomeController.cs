@@ -1,15 +1,20 @@
 using System.Diagnostics;
 using System.Globalization;
+using System.Security.Claims;
+using BTL_WebNC_Quản_lý_chấm_công.Data;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
 using BTL_WebNC_Quản_lý_chấm_công.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
 {
-    public class HomeController(TimeProvider clock) : Controller
+    [AllowAnonymous]
+    public class HomeController(TimeProvider clock, ApplicationDbContext context) : Controller
     {
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             const string countCookie = "Attendance.VisitCount";
             const string lastVisitCookie = "Attendance.LastVisitUtc";
@@ -35,11 +40,34 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
             };
             Response.Cookies.Append(countCookie, visitCount.ToString(CultureInfo.InvariantCulture), options);
             Response.Cookies.Append(lastVisitCookie, now.ToString("O", CultureInfo.InvariantCulture), options);
+
+            HomeProfileSummaryViewModel? profile = null;
+            if (User.Identity?.IsAuthenticated == true
+                && int.TryParse(User.FindFirstValue("EmployeeID"), out var employeeId))
+            {
+                profile = await context.Employees.AsNoTracking()
+                    .Where(e => e.EmployeeID == employeeId)
+                    .Select(e => new HomeProfileSummaryViewModel
+                    {
+                        EmployeeID = e.EmployeeID,
+                        EmployeeCode = e.EmployeeCode,
+                        FullName = e.FullName,
+                        Phone = e.Phone,
+                        Email = e.Email,
+                        DepartmentName = e.Department != null ? e.Department.DepartmentName : null,
+                        PositionName = e.Position != null ? e.Position.PositionName : null,
+                        HasPendingProfileRequest = context.ProfileChangeRequests
+                            .Any(r => r.EmployeeID == e.EmployeeID && r.Status == "Pending")
+                    })
+                    .SingleOrDefaultAsync();
+            }
+
             return View(new HomeVisitViewModel
             {
                 VisitCount = visitCount,
                 PreviousVisit = previousVisit,
-                CurrentVisit = now
+                CurrentVisit = now,
+                Profile = profile
             });
         }
 
@@ -52,4 +80,3 @@ namespace BTL_WebNC_Quản_lý_chấm_công.Controllers
         }
     }
 }
-

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using BTL_WebNC_Quản_lý_chấm_công.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using BTL_WebNC_Quản_lý_chấm_công.Services;
 using BTL_WebNC_Quản_lý_chấm_công.Models;
 using Microsoft.AspNetCore.Identity;
@@ -23,7 +24,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.EventsType = typeof(AccountCookieEvents);
     });
 builder.Services.AddScoped<AccountCookieEvents>();
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Mặc định mọi endpoint đều yêu cầu đăng nhập; các trang công khai phải có [AllowAnonymous].
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<PayrollService>();
 builder.Services.AddScoped<ReportService>();
